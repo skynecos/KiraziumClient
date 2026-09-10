@@ -1,0 +1,8 @@
+repository=skynecos/KiraziumClient
+imported_from=skynecos/KiraziumLauncher
+imported_branch=codex/embedded-ffmpeg-single-apk
+imported_commit=2e77482669359ac7e384d1c1e7c5b157852cbb0c
+layout=launcher-root
+cinema_path=cinema
+ffmpeg=embedded-in-launcher
+bootstrap=one-shot

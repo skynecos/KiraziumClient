@@ -1,0 +1,365 @@
+package net.kdt.pojavlaunch.authenticator.impl;
+
+import static net.kdt.pojavlaunch.PojavApplication.sExecutorService;
+
+import android.util.ArrayMap;
+import android.util.Log;
+
+import androidx.annotation.NonNull;
+
+import com.kdt.mcgui.ProgressLayout;
+
+import git.artdeell.mojo.R;
+import net.kdt.pojavlaunch.Tools;
+import net.kdt.pojavlaunch.authenticator.AuthType;
+import net.kdt.pojavlaunch.authenticator.BackgroundLogin;
+import net.kdt.pojavlaunch.authenticator.accounts.Accounts;
+import net.kdt.pojavlaunch.authenticator.listener.LoginListener;
+import net.kdt.pojavlaunch.authenticator.model.OAuthTokenResponse;
+import net.kdt.pojavlaunch.authenticator.accounts.Account;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.ProtocolException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.Callable;
+
+/** Allow to perform a background login on a given account */
+public class MicrosoftBackgroundLogin implements BackgroundLogin{
+    public static final BackgroundLogin.Creator CREATOR = MicrosoftBackgroundLogin::new;
+
+    private static final String authTokenUrl = "https://login.live.com/oauth20_token.srf";
+    private static final String xblAuthUrl = "https://user.auth.xboxlive.com/user/authenticate";
+    private static final String xstsAuthUrl = "https://xsts.auth.xboxlive.com/xsts/authorize";
+    private static final String mcLoginUrl = "https://api.minecraftservices.com/authentication/login_with_xbox";
+    private static final String mcProfileUrl = "https://api.minecraftservices.com/minecraft/profile";
+    private static final String mcStoreUrl = "https://api.minecraftservices.com/entitlements/mcstore";
+    private static final String PKCE_PAYLOAD_PREFIX = "kirazium-pkce:";
+
+    private static final Map<Long, Integer> XSTS_ERRORS;
+    static {
+        XSTS_ERRORS = new ArrayMap<>();
+        XSTS_ERRORS.put(2148916233L, R.string.xerr_no_account);
+        XSTS_ERRORS.put(2148916235L, R.string.xerr_not_available);
+        XSTS_ERRORS.put(2148916236L ,R.string.xerr_adult_verification);
+        XSTS_ERRORS.put(2148916237L ,R.string.xerr_adult_verification);
+        XSTS_ERRORS.put(2148916238L ,R.string.xerr_child);
+    }
+
+    public String msRefreshToken;
+    public String mcName;
+    public String mcToken;
+    public String mcUuid;
+    public String msXsts;
+    public boolean doesOwnGame;
+    public long expiresAt;
+
+    private MicrosoftBackgroundLogin() {}
+
+    private void acquireAccountDetails(
+            @NonNull LoginListener loginListener, Callable<Void> continuation,
+            String code, boolean isRefresh
+    ) {
+        ProgressLayout.setProgress(ProgressLayout.AUTHENTICATE, 0);
+        sExecutorService.execute(() -> {
+            loginListener.setMaxLoginProgress(5);
+            try {
+                notifyProgress(loginListener, 1);
+                String accessToken = acquireAccessToken(isRefresh, code);
+                notifyProgress(loginListener, 2);
+                String xboxLiveToken = acquireXBLToken(accessToken);
+                notifyProgress(loginListener, 3);
+                String[] xsts = acquireXsts(xboxLiveToken);
+                notifyProgress(loginListener, 4);
+                String token = acquireToken(xsts[0], xsts[1]);
+                notifyProgress(loginListener, 5);
+                fetchOwnedItems(token);
+                checkProfile(token);
+                msXsts  = xsts[0];
+                continuation.call();
+            }catch (Exception e){
+                Log.e("MicroAuth", "Authentication failed", e);
+                Tools.runOnUiThread(()->loginListener.onLoginError(e));
+            } finally {
+                ProgressLayout.clearProgress(ProgressLayout.AUTHENTICATE);
+            }
+        });
+    }
+
+    private void fillAccount(Account acc) {
+        acc.xuid = msXsts;
+        acc.accessToken = mcToken;
+        acc.username = mcName;
+        acc.profileId = mcUuid;
+        acc.authType = AuthType.MICROSOFT;
+        acc.refreshToken = msRefreshToken;
+        acc.expiresAt = expiresAt;
+        acc.updateSkinFace();
+    }
+
+    @Override
+    public void createAccount(@NonNull LoginListener loginListener, String code) {
+        acquireAccountDetails(loginListener, ()->{
+            Account account = Accounts.create(this::fillAccount);
+            Tools.runOnUiThread(() -> loginListener.onLoginDone(account));
+            return null;
+        }, code, false);
+    }
+
+    @Override
+    public void refreshAccount(@NonNull LoginListener loginListener, Account account) {
+        acquireAccountDetails(loginListener, ()->{
+            if(doesOwnGame) fillAccount(account);
+            account.save();
+            Tools.runOnUiThread(() -> loginListener.onLoginDone(account));
+            return null;
+        }, account.refreshToken, true);
+    }
+
+    private String acquireAccessToken(boolean isRefresh, String code) throws IOException {
+        URL url = new URL(authTokenUrl);
+        Log.i("MicrosoftLogin", isRefresh ? "Refreshing Microsoft session" : "Exchanging Microsoft authorization code with PKCE");
+
+        String formData;
+        if (isRefresh) {
+            formData = CommonLoginUtils.convertToFormData(
+                    "client_id", "00000000402b5328",
+                    "refresh_token", code,
+                    "grant_type", "refresh_token",
+                    "redirect_url", "https://login.live.com/oauth20_desktop.srf",
+                    "scope", "service::user.auth.xboxlive.com::MBI_SSL"
+            );
+        } else {
+            PkceAuthorization authorization = parsePkceAuthorization(code);
+            formData = CommonLoginUtils.convertToFormData(
+                    "client_id", "00000000402b5328",
+                    "code", authorization.code,
+                    "code_verifier", authorization.verifier,
+                    "grant_type", "authorization_code",
+                    "redirect_url", "https://login.live.com/oauth20_desktop.srf",
+                    "scope", "service::user.auth.xboxlive.com::MBI_SSL"
+            );
+        }
+
+        OAuthTokenResponse response = CommonLoginUtils.exchangeAuthCode(url, formData);
+        if (response == null || response.accessToken == null || response.accessToken.isEmpty()) {
+            throw new IOException("Microsoft returned no access token");
+        }
+        msRefreshToken = response.refreshToken;
+        return response.accessToken;
+    }
+
+    private static PkceAuthorization parsePkceAuthorization(String value) throws IOException {
+        if (value == null || !value.startsWith(PKCE_PAYLOAD_PREFIX)) {
+            throw new IOException("Secure Microsoft PKCE session is missing");
+        }
+
+        String payload = value.substring(PKCE_PAYLOAD_PREFIX.length());
+        int separator = payload.indexOf(':');
+        if (separator <= 0 || separator >= payload.length() - 1) {
+            throw new IOException("Secure Microsoft PKCE payload is invalid");
+        }
+
+        String verifier = payload.substring(0, separator);
+        String authorizationCode = payload.substring(separator + 1);
+        if (!verifier.matches("[A-Za-z0-9_-]{43,128}") || authorizationCode.length() > 8192) {
+            throw new IOException("Secure Microsoft PKCE payload failed validation");
+        }
+        return new PkceAuthorization(authorizationCode, verifier);
+    }
+
+    private String acquireXBLToken(String accessToken) throws IOException, JSONException {
+        URL url = new URL(xblAuthUrl);
+
+        JSONObject data = new JSONObject();
+        JSONObject properties = new JSONObject();
+        properties.put("AuthMethod", "RPS");
+        properties.put("SiteName", "user.auth.xboxlive.com");
+        properties.put("RpsTicket", accessToken);
+        data.put("Properties",properties);
+        data.put("RelyingParty", "http://auth.xboxlive.com");
+        data.put("TokenType", "JWT");
+
+        String req = data.toString();
+        HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+        setCommonProperties(conn, req);
+        conn.connect();
+
+        try(OutputStream wr = conn.getOutputStream()) {
+            wr.write(req.getBytes(StandardCharsets.UTF_8));
+        }
+        if(conn.getResponseCode() >= 200 && conn.getResponseCode() < 300) {
+            JSONObject jo = new JSONObject(Tools.read(conn.getInputStream()));
+            conn.disconnect();
+            return jo.getString("Token");
+        }else{
+            throw CommonLoginUtils.getResponseThrowable(conn);
+        }
+    }
+
+    /** @return [uhs, token]*/
+    private @NonNull String[] acquireXsts(String xblToken) throws IOException, JSONException {
+        URL url = new URL(xstsAuthUrl);
+
+        JSONObject data = new JSONObject();
+        JSONObject properties = new JSONObject();
+        properties.put("SandboxId", "RETAIL");
+        properties.put("UserTokens", new JSONArray(Collections.singleton(xblToken)));
+        data.put("Properties", properties);
+        data.put("RelyingParty", "rp://api.minecraftservices.com/");
+        data.put("TokenType", "JWT");
+
+        String req = data.toString();
+        HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+        setCommonProperties(conn, req);
+        conn.connect();
+
+        try(OutputStream wr = conn.getOutputStream()) {
+            wr.write(req.getBytes(StandardCharsets.UTF_8));
+        }
+
+        if(conn.getResponseCode() >= 200 && conn.getResponseCode() < 300) {
+            JSONObject jo = new JSONObject(Tools.read(conn.getInputStream()));
+            String uhs = jo.getJSONObject("DisplayClaims").getJSONArray("xui").getJSONObject(0).getString("uhs");
+            String token = jo.getString("Token");
+            conn.disconnect();
+            return new String[]{uhs, token};
+        }else if(conn.getResponseCode() == 401) {
+            String responseContents = Tools.read(conn.getErrorStream());
+            JSONObject jo = new JSONObject(responseContents);
+            long xerr = jo.optLong("XErr", -1);
+            Integer locale_id = XSTS_ERRORS.get(xerr);
+            conn.disconnect();
+            if(locale_id != null) {
+                throw new PresentedException(new RuntimeException("XSTS authentication rejected"), locale_id);
+            }
+            throw new PresentedException(new RuntimeException("XSTS authentication rejected"), R.string.xerr_unknown, xerr);
+        }else{
+            try {
+                throw CommonLoginUtils.getResponseThrowable(conn);
+            } finally {
+                conn.disconnect();
+            }
+        }
+    }
+
+    private String acquireToken(String xblUhs, String xblXsts) throws IOException, JSONException {
+        URL url = new URL(mcLoginUrl);
+
+        JSONObject data = new JSONObject();
+        data.put("identityToken", "XBL3.0 x=" + xblUhs + ";" + xblXsts);
+
+        String req = data.toString();
+        HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+        setCommonProperties(conn, req);
+        conn.connect();
+
+        try(OutputStream wr = conn.getOutputStream()) {
+            wr.write(req.getBytes(StandardCharsets.UTF_8));
+        }
+        if(conn.getResponseCode() >= 200 && conn.getResponseCode() < 300) {
+            expiresAt = System.currentTimeMillis() + 86400000;
+            JSONObject jo = new JSONObject(Tools.read(conn.getInputStream()));
+            conn.disconnect();
+            mcToken = jo.getString("access_token");
+            return mcToken;
+        }else{
+            try {
+                throw CommonLoginUtils.getResponseThrowable(conn);
+            } finally {
+                conn.disconnect();
+            }
+        }
+    }
+
+    private void fetchOwnedItems(String mcAccessToken) throws IOException {
+        URL url = new URL(mcStoreUrl);
+
+        HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+        conn.setRequestProperty("Authorization", "Bearer " + mcAccessToken);
+        conn.setConnectTimeout(15000);
+        conn.setReadTimeout(30000);
+        conn.setUseCaches(false);
+        conn.connect();
+        if(conn.getResponseCode() < 200 || conn.getResponseCode() >= 300) {
+            try {
+                throw CommonLoginUtils.getResponseThrowable(conn);
+            } finally {
+                conn.disconnect();
+            }
+        }
+        conn.disconnect();
+    }
+
+    private void checkProfile(String mcAccessToken) throws IOException, JSONException {
+        URL url = new URL(mcProfileUrl);
+
+        HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+        conn.setRequestProperty("Authorization", "Bearer " + mcAccessToken);
+        conn.setConnectTimeout(15000);
+        conn.setReadTimeout(30000);
+        conn.setUseCaches(false);
+        conn.connect();
+
+        if(conn.getResponseCode() >= 200 && conn.getResponseCode() < 300) {
+            String s= Tools.read(conn.getInputStream());
+            conn.disconnect();
+            JSONObject jsonObject = new JSONObject(s);
+            String name = (String) jsonObject.get("name");
+            String uuid = (String) jsonObject.get("id");
+            String uuidDashes = uuid.replaceFirst(
+                    "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}+)", "$1-$2-$3-$4-$5"
+            );
+            doesOwnGame = true;
+            mcName=name;
+            mcUuid=uuidDashes;
+        }else{
+            conn.disconnect();
+            Log.i("MicrosoftLogin","Microsoft account does not own Minecraft Java Edition");
+            doesOwnGame = false;
+            throw new PresentedException(new RuntimeException("Minecraft profile unavailable"), R.string.mc_not_owned);
+        }
+    }
+
+    /** Wrapper to ease notifying the listener */
+    private void notifyProgress(LoginListener listener, int step){
+        Tools.runOnUiThread(() -> listener.onLoginProgress(step));
+        ProgressLayout.setProgress(ProgressLayout.AUTHENTICATE, step*20);
+    }
+
+    /** Set common properties for the connection. Given that all requests are POST, interactivity is always enabled */
+    private static void setCommonProperties(HttpURLConnection conn, String formData) {
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setRequestProperty("Accept", "application/json");
+        conn.setRequestProperty("charset", "utf-8");
+        conn.setConnectTimeout(15000);
+        conn.setReadTimeout(30000);
+        try {
+            conn.setRequestProperty("Content-Length", Integer.toString(formData.getBytes(StandardCharsets.UTF_8).length));
+            conn.setRequestMethod("POST");
+        }catch (ProtocolException e) {
+            Log.e("MicrosoftAuth", "Could not configure authentication request");
+        }
+        conn.setUseCaches(false);
+        conn.setDoInput(true);
+        conn.setDoOutput(true);
+    }
+
+    private static final class PkceAuthorization {
+        final String code;
+        final String verifier;
+
+        PkceAuthorization(String code, String verifier) {
+            this.code = code;
+            this.verifier = verifier;
+        }
+    }
+}
