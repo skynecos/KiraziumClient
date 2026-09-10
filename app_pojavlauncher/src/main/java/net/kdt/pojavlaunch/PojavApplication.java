@@ -16,6 +16,7 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 
 import net.kdt.pojavlaunch.instances.KiraziumBootstrap;
+import net.kdt.pojavlaunch.instances.KiraziumCinemaInstaller;
 import net.kdt.pojavlaunch.lifecycle.ContextExecutor;
 import net.kdt.pojavlaunch.prefs.LauncherPreferences;
 import net.kdt.pojavlaunch.tasks.AsyncAssetManager;
@@ -110,6 +111,7 @@ public class PojavApplication extends Application {
             if (Tools.checkStorageRoot(this)) {
                 LauncherPreferences.loadPreferences(this);
                 KiraziumBootstrap.ensureEmbeddedCinemaMod(this);
+                KiraziumCinemaInstaller.ensureInstalled(this);
             } else {
                 Tools.initEarlyConstants(this);
             }
