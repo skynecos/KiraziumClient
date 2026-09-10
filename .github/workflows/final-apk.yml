@@ -224,25 +224,25 @@ jobs:
           test "$SIGNED_CERT_SHA256" = "$EXPECTED_KIRAZIUM_CERT_SHA256"
           sha256sum out/KiraziumClient-FINAL-SIGNED.apk > out/KiraziumClient-FINAL-SIGNED.apk.sha256
 
-      - name: Publish only final build
+      - name: Publish final APK to GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          staged="$RUNNER_TEMP/kirazium-final-stage"
-          output="$RUNNER_TEMP/kirazium-final-output"
-          mkdir -p "$staged"
-          cp out/KiraziumClient-FINAL-SIGNED.apk out/KiraziumClient-FINAL-SIGNED.apk.sha256 "$staged/"
-          git worktree add --detach "$output" "$GITHUB_SHA"
-          cd "$output"
-          git switch --orphan kirazium-final-output
-          git rm -rf . >/dev/null 2>&1 || true
-          mkdir -p artifacts
-          cp "$staged"/* artifacts/
-          printf 'source_commit=%s\nsource_branch=main\nworkflow=final-apk\nffmpeg_plugin_commit=%s\nffmpeg_kit_commit=%s\nffmpeg_ndk=%s\ndefault_renderer=opengles2\ndreamdisplays_install=embedded-stallfix1-auto\ndreamdisplays_runtime_source=tested-stallfix1\ndreamdisplays_tested_container_sha256=%s\ndreamdisplays_embedded_sha256=%s\ndecode=software\nhelper_apk=none\n' "$GITHUB_SHA" "$FFMPEG_PLUGIN_COMMIT" "$FFMPEG_KIT_COMMIT" "$FFMPEG_NDK_VERSION" "$CINEMA_SHA256" "$CINEMA_SHA256" > artifacts/BUILD_INFO.txt
-          git add artifacts
-          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -m "build: KiraziumClient final signed APK"
-          git push --force "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/build/final
+          TAG="kiraziumclient-final"
+          printf 'source_commit=%s\nsource_branch=main\nworkflow=final-apk\nffmpeg_plugin_commit=%s\nffmpeg_kit_commit=%s\nffmpeg_ndk=%s\ndefault_renderer=opengles2\ndreamdisplays_install=embedded-stallfix1-auto\ndreamdisplays_runtime_source=tested-stallfix1\ndreamdisplays_tested_container_sha256=%s\ndreamdisplays_embedded_sha256=%s\ndecode=software\nhelper_apk=none\n' "$GITHUB_SHA" "$FFMPEG_PLUGIN_COMMIT" "$FFMPEG_KIT_COMMIT" "$FFMPEG_NDK_VERSION" "$CINEMA_SHA256" "$CINEMA_SHA256" > out/BUILD_INFO.txt
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --target "$GITHUB_SHA" --title "KiraziumClient Final" --notes "KiraziumClient + embedded FFmpeg + tested DreamDisplays stallfix1. Software decode; no helper APK."
+          fi
+          gh release upload "$TAG" \
+            out/KiraziumClient-FINAL-SIGNED.apk \
+            out/KiraziumClient-FINAL-SIGNED.apk.sha256 \
+            out/BUILD_INFO.txt \
+            --clobber
+          gh release view "$TAG" --json assets --jq '.assets[].name' | tee /tmp/release-assets.txt
+          grep -Fx 'KiraziumClient-FINAL-SIGNED.apk' /tmp/release-assets.txt >/dev/null
+          grep -Fx 'KiraziumClient-FINAL-SIGNED.apk.sha256' /tmp/release-assets.txt >/dev/null
+          grep -Fx 'BUILD_INFO.txt' /tmp/release-assets.txt >/dev/null
 
       - name: Remove signing material
         if: always()
