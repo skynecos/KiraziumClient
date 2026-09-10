@@ -63,8 +63,26 @@ public final class KiraziumCinemaInstaller {
         FileUtils.ensureDirectory(modsDirectory);
 
         File destination = new File(modsDirectory, FILE_NAME);
-        if (isExact(destination)) {
-            removeSupersededDreamDisplays(modsDirectory, destination);
+        File manualOverride = findManualDreamDisplays(modsDirectory, destination);
+        if (manualOverride != null) {
+            // A manually supplied DreamDisplays JAR always wins. If the launcher-managed stable JAR
+            // is also present, remove only that exact managed copy so Fabric never sees duplicates.
+            if (isExact(destination)) {
+                disableManagedEmbedded(destination);
+            }
+            Log.i(TAG, "Manual DreamDisplays override detected; leaving it untouched: "
+                    + manualOverride.getAbsolutePath());
+            return;
+        }
+
+        // No manual override exists. Keep the exact managed fallback if it is already installed.
+        if (isExact(destination)) return;
+
+        // If a file with the managed filename exists but is not our exact payload, treat it as user-owned.
+        // Never overwrite an unknown/custom DreamDisplays build merely because the filename matches.
+        if (destination.isFile()) {
+            Log.i(TAG, "Custom DreamDisplays file uses managed filename; leaving it untouched: "
+                    + destination.getAbsolutePath());
             return;
         }
 
@@ -88,42 +106,51 @@ public final class KiraziumCinemaInstaller {
             throw new IOException("Embedded DreamDisplays checksum mismatch");
         }
 
-        if (destination.exists() && !destination.delete()) {
-            temporary.delete();
-            throw new IOException("Could not replace installed DreamDisplays mod");
-        }
         if (!temporary.renameTo(destination)) {
             temporary.delete();
             throw new IOException("Could not activate DreamDisplays mod");
         }
 
-        removeSupersededDreamDisplays(modsDirectory, destination);
-        Log.i(TAG, "Installed exact DreamDisplays stallfix1 into " + destination.getAbsolutePath());
+        Log.i(TAG, "Installed exact DreamDisplays stallfix1 fallback into "
+                + destination.getAbsolutePath());
+    }
+
+    private static File findManualDreamDisplays(File modsDirectory, File managedDestination)
+            throws IOException {
+        File[] files = modsDirectory.listFiles();
+        if (files == null) return null;
+
+        for (File file : files) {
+            if (!file.isFile()) continue;
+            String name = file.getName().toLowerCase(Locale.ROOT);
+            if (!name.endsWith(".jar") || !name.contains("dreamdisplays")) continue;
+
+            // The one exact launcher-managed fallback is not a manual override.
+            if (file.equals(managedDestination) && isExact(file)) continue;
+            return file;
+        }
+        return null;
+    }
+
+    private static void disableManagedEmbedded(File managedDestination) throws IOException {
+        if (!isExact(managedDestination)) return;
+        if (managedDestination.delete()) {
+            Log.i(TAG, "Removed launcher-managed stallfix1 because a manual DreamDisplays override exists.");
+            return;
+        }
+
+        File disabled = new File(managedDestination.getParentFile(), managedDestination.getName() + ".disabled");
+        if (disabled.exists() && !disabled.delete()) {
+            throw new IOException("Could not replace stale managed DreamDisplays disabled file");
+        }
+        if (!managedDestination.renameTo(disabled)) {
+            throw new IOException("Could not disable launcher-managed DreamDisplays fallback");
+        }
+        Log.i(TAG, "Disabled launcher-managed stallfix1 because a manual DreamDisplays override exists.");
     }
 
     private static boolean isExact(File file) throws IOException {
         return file.isFile() && file.length() == SIZE && SHA256.equals(sha256(file));
-    }
-
-    private static void removeSupersededDreamDisplays(File modsDirectory, File current)
-            throws IOException {
-        File[] files = modsDirectory.listFiles();
-        if (files == null) return;
-
-        for (File file : files) {
-            if (!file.isFile() || file.equals(current)) continue;
-            String name = file.getName().toLowerCase(Locale.ROOT);
-            if (!name.endsWith(".jar") || !name.contains("dreamdisplays")) continue;
-            if (file.delete()) continue;
-
-            File disabled = new File(modsDirectory, file.getName() + ".disabled");
-            if (disabled.exists() && !disabled.delete()) {
-                throw new IOException("Could not replace stale disabled DreamDisplays file");
-            }
-            if (!file.renameTo(disabled)) {
-                throw new IOException("Could not disable superseded DreamDisplays file: " + file);
-            }
-        }
     }
 
     private static String sha256(File file) throws IOException {
