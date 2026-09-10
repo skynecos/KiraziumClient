@@ -2,6 +2,11 @@ name: KiraziumClient Final APK
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/release-trigger.txt"
 
 permissions:
   contents: write
@@ -60,13 +65,10 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y autogen autoconf automake autopoint build-essential cmake gettext gperf groff gtk-doc-tools libtasn1-bin libtool libtool-bin nasm pkg-config yasm
-
           SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
           test -n "$SDK_ROOT"
           SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          if [ ! -x "$SDKMANAGER" ]; then
-            SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -perm -u+x | head -n 1 || true)"
-          fi
+          if [ ! -x "$SDKMANAGER" ]; then SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -perm -u+x | head -n 1 || true)"; fi
           test -x "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "ndk;${FFMPEG_NDK_VERSION}" "ndk;${LAUNCHER_NDK_VERSION}" "platforms;android-36" "build-tools;36.0.0"
@@ -81,7 +83,6 @@ jobs:
           git -C "$PLUGIN_DIR" remote add origin https://github.com/MojoLauncher/FFmpegPlugin.git
           git -C "$PLUGIN_DIR" fetch --depth 1 origin "$FFMPEG_PLUGIN_COMMIT"
           git -C "$PLUGIN_DIR" checkout --detach FETCH_HEAD
-
           git init "$PLUGIN_DIR/ffmpeg-kit"
           git -C "$PLUGIN_DIR/ffmpeg-kit" remote add origin https://github.com/arthenica/ffmpeg-kit.git
           git -C "$PLUGIN_DIR/ffmpeg-kit" fetch --depth 1 origin "$FFMPEG_KIT_COMMIT"
@@ -94,7 +95,6 @@ jobs:
           chmod +x tools/embedded-ffmpeg/build-native-bundle.sh
           BUNDLE="$RUNNER_TEMP/kirazium-ffmpeg/arm64-v8a"
           ANDROID_NDK_ROOT="$FFMPEG_NDK_ROOT" tools/embedded-ffmpeg/build-native-bundle.sh "$RUNNER_TEMP/FFmpegPlugin" "$BUNDLE"
-
           test -s "$BUNDLE/libffmpeg.so"
           test -s "$BUNDLE/libavformat.so"
           test -s "$BUNDLE/libavcodec.so"
@@ -112,13 +112,9 @@ jobs:
           mkdir -p "$JNI_DIR"
           for lib in "$BUNDLE"/*.so; do
             name="$(basename "$lib")"
-            if [ -e "$JNI_DIR/$name" ]; then
-              echo "::error::Refusing to overwrite existing launcher native library: $name"
-              exit 1
-            fi
+            if [ -e "$JNI_DIR/$name" ]; then echo "::error::Refusing to overwrite existing launcher native library: $name"; exit 1; fi
             cp "$lib" "$JNI_DIR/$name"
           done
-
           python3 tools/embedded-ffmpeg/patch-launcher.py
           grep -F 'new File(ctx.getApplicationInfo().nativeLibraryDir, "libffmpeg.so")' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/JREUtils.java >/dev/null
           grep -F 'Using embedded Kirazium FFmpeg:' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/JREUtils.java >/dev/null
@@ -152,11 +148,9 @@ jobs:
           APK="$(find app_pojavlauncher/build/outputs/apk/full/release -type f -name '*.apk' | head -n 1)"
           test -s "$APK"
           mkdir -p verify/ffmpeg unsigned out
-
           unzip -p "$APK" "assets/kirazium/mods/dreamdisplays-fabric-26.1.2-1.9.5-kirazium-android-stallfix1.jar" > verify/dreamdisplays-stallfix1.jar
           test "$(stat -c%s verify/dreamdisplays-stallfix1.jar)" = "$CINEMA_SIZE"
           echo "$CINEMA_SHA256  verify/dreamdisplays-stallfix1.jar" | sha256sum -c -
-
           for name in libffmpeg.so libffprobe.so libavformat.so libavcodec.so libavdevice.so libavutil.so; do
             unzip -p "$APK" "lib/arm64-v8a/$name" > "verify/ffmpeg/$name"
             test -s "verify/ffmpeg/$name"
@@ -164,7 +158,6 @@ jobs:
           readelf -d verify/ffmpeg/libffmpeg.so | grep -q 'libavdevice.so'
           strings verify/ffmpeg/libavformat.so | grep -q -- '--enable-gnutls'
           strings verify/ffmpeg/libavcodec.so | grep -q -- '--enable-jni'
-
           found_ffmpeg=0
           found_cinema=0
           while IFS= read -r dex; do
@@ -173,18 +166,13 @@ jobs:
           done < <(unzip -Z1 "$APK" | grep -E '^classes([0-9]+)?\.dex$')
           test "$found_ffmpeg" = 1
           test "$found_cinema" = 1
-
           VERIFY_ALL="$RUNNER_TEMP/verify-all-libs"
           mkdir -p "$VERIFY_ALL"
           unzip -q "$APK" 'lib/arm64-v8a/*.so' -d "$VERIFY_ALL"
           python3 - "$VERIFY_ALL/lib/arm64-v8a" <<'PY'
           import pathlib, re, subprocess, sys
           root = pathlib.Path(sys.argv[1])
-          system = {
-              'libc.so','libm.so','libdl.so','liblog.so','libandroid.so','libmediandk.so','libcamera2ndk.so',
-              'libz.so','libOpenSLES.so','libaaudio.so','libEGL.so','libGLESv2.so','libGLESv3.so',
-              'libjnigraphics.so','libvulkan.so','libstdc++.so','libgcc.so'
-          }
+          system = {'libc.so','libm.so','libdl.so','liblog.so','libandroid.so','libmediandk.so','libcamera2ndk.so','libz.so','libOpenSLES.so','libaaudio.so','libEGL.so','libGLESv2.so','libGLESv3.so','libjnigraphics.so','libvulkan.so','libstdc++.so','libgcc.so'}
           ff = [p for p in root.glob('*.so') if p.name.startswith(('libff','libav','libsw','libpostproc','libgnutls','libnettle','libhogweed','libgmp','libiconv','libcharset','libtasn1','libunistring','libidn2'))]
           missing = []
           for p in ff:
@@ -196,7 +184,6 @@ jobs:
               raise SystemExit(1)
           print(f'Validated dependency closure for {len(ff)} embedded FFmpeg-family libraries.')
           PY
-
           unzip -p "$APK" lib/arm64-v8a/libpojavexec.so > verify/libpojavexec.so
           unzip -p "$APK" lib/arm64-v8a/libmobileglues.so > verify/libmobileglues.so
           readelf -Ws verify/libpojavexec.so | grep -F 'kirazium_get_android_art_vm' >/dev/null
