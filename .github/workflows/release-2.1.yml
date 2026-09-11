@@ -168,14 +168,19 @@ jobs:
               libffmpeg.so|libffprobe.so|libav*.so|libsw*.so|libpostproc*.so|libgnutls*.so|libnettle*.so|libhogweed*.so|libgmp*.so|libiconv*.so|libcharset*.so|libtasn1*.so|libunistring*.so|libidn2*.so)
                 if [ -e "$JNI_DIR/$name" ]; then echo "::error::Refusing to overwrite existing launcher native library: $name"; exit 1; fi
                 cp "$lib" "$JNI_DIR/$name"
+                echo "Reused verified base native: $name"
                 copied=$((copied + 1))
                 ;;
             esac
           done
-          test "$copied" -gt 10
+          echo "Reused $copied FFmpeg-family native libraries from the known-good APK."
+          test "$copied" = 9
           test -s "$JNI_DIR/libffmpeg.so"
+          test -s "$JNI_DIR/libffprobe.so"
           test -s "$JNI_DIR/libavformat.so"
           test -s "$JNI_DIR/libavcodec.so"
+          test -s "$JNI_DIR/libavdevice.so"
+          test -s "$JNI_DIR/libavutil.so"
           strings "$JNI_DIR/libavformat.so" | grep -q -- '--enable-gnutls'
           strings "$JNI_DIR/libavcodec.so" | grep -q -- '--enable-mediacodec'
           strings "$JNI_DIR/libavcodec.so" | grep -q -- '--enable-jni'
