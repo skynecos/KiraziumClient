@@ -1,0 +1,328 @@
+name: KiraziumClient 2.1 Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/release-2.1.yml"
+
+permissions:
+  contents: write
+
+env:
+  EXPECTED_KIRAZIUM_CERT_SHA256: "912671e0b010d902cf148b673c4edf2f5560c86afa2e02f877f2862e0e0de90d"
+  EXPECTED_KIRAZIUM_KEYSTORE_SHA256: "be1bc024531f15fa4cd0a21d3a12681e7c122535e1224ee2573dd98c1e57054d"
+  EXPECTED_MOBILEGLUES_COMMIT: "f56af31d3e490d95808b3adc4ace20234249a37a"
+  BASE_FINAL_APK_SHA256: "78ba85e0f13fc652fd846e23bdd5e3fbaa0271cdce14764e6b7d33a275cc487c"
+  MOBILEFIX1_COMMIT: "4fd2a2ec1cf5c8203dc4604cc84e2f3d9a7f43fe"
+  CINEMA_JAR_NAME: "dreamdisplays-fabric-26.1.2-1.9.5-kirazium-android-mobilefix1.jar"
+  CINEMA_JAR: "app_pojavlauncher/src/main/assets/kirazium/mods/dreamdisplays-fabric-26.1.2-1.9.5-kirazium-android-mobilefix1.jar"
+  CINEMA_SHA256: "85a733decd6e0b5c190346935048822f22ca779901cbe3ee0a5155449c219ea8"
+  CINEMA_SIZE: "23595089"
+  LEGACY_CINEMA_NAME: "dreamdisplays-fabric-26.1.2-1.9.5-kirazium-android-stallfix1.jar"
+  LEGACY_CINEMA_SHA256: "918872694b9fe437b6c412dda287e717d33b654a1bf8885af0ceea0ed38caab1"
+  LEGACY_CINEMA_SIZE: "23595235"
+
+jobs:
+  build-release-2-1:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+
+    steps:
+      - name: Verify production signing secrets exist
+        env:
+          KIRAZIUM_KEYSTORE_B64: ${{ secrets.KIRAZIUM_KEYSTORE_B64 }}
+          KIRAZIUM_KEYSTORE_PASSWORD: ${{ secrets.KIRAZIUM_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "${KIRAZIUM_KEYSTORE_B64:-}" || { echo "::error::Missing KIRAZIUM_KEYSTORE_B64"; exit 1; }
+          test -n "${KIRAZIUM_KEYSTORE_PASSWORD:-}" || { echo "::error::Missing KIRAZIUM_KEYSTORE_PASSWORD"; exit 1; }
+
+      - name: Checkout KiraziumClient
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          submodules: recursive
+
+      - name: Verify exact source baseline
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git -C MobileGlues rev-parse HEAD)" = "$EXPECTED_MOBILEGLUES_COMMIT"
+          grep -F 'versionName "2.0"' app_pojavlauncher/build.gradle >/dev/null
+          grep -F "$LEGACY_CINEMA_SHA256" app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumCinemaInstaller.java >/dev/null
+          grep -F "$LEGACY_CINEMA_SHA256" app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumBootstrap.java >/dev/null
+
+      - name: Download verified MOBILEFIX1 artifact
+        uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
+        with:
+          repo: skynecos/dreamdisplays
+          workflow: mobilefix1.yml
+          workflow_conclusion: success
+          commit: 4fd2a2ec1cf5c8203dc4604cc84e2f3d9a7f43fe
+          name: dreamdisplays-android-mobilefix1
+          path: ${{ runner.temp }}/mobilefix1
+
+      - name: Embed exact MOBILEFIX1 payload and patch release 2.1 source
+        run: |
+          set -euo pipefail
+          SRC="$RUNNER_TEMP/mobilefix1/$CINEMA_JAR_NAME"
+          test -s "$SRC"
+          test "$(stat -c%s "$SRC")" = "$CINEMA_SIZE"
+          echo "$CINEMA_SHA256  $SRC" | sha256sum -c -
+          unzip -p "$SRC" fabric.mod.json | grep -F '1.9.5-kirazium-android-mobilefix1' >/dev/null
+
+          rm -f app_pojavlauncher/src/main/assets/kirazium/mods/dreamdisplays-*.jar
+          mkdir -p "$(dirname "$CINEMA_JAR")"
+          cp "$SRC" "$CINEMA_JAR"
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, count=1):
+              p = Path(path)
+              text = p.read_text()
+              found = text.count(old)
+              if found != count:
+                  raise SystemExit(f"2.1 patch anchor mismatch in {path}: expected {count}, found {found}: {old!r}")
+              p.write_text(text.replace(old, new, count))
+
+          installer = "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumCinemaInstaller.java"
+          bootstrap = "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumBootstrap.java"
+
+          replace("app_pojavlauncher/build.gradle", 'versionName "2.0"', 'versionName "2.1"')
+
+          replace(installer,
+                  '"dreamdisplays-fabric-26.1.2-1.9.5-kirazium-android-stallfix1.jar";',
+                  '"dreamdisplays-fabric-26.1.2-1.9.5-kirazium-android-mobilefix1.jar";')
+          replace(installer,
+                  '"918872694b9fe437b6c412dda287e717d33b654a1bf8885af0ceea0ed38caab1";',
+                  '"85a733decd6e0b5c190346935048822f22ca779901cbe3ee0a5155449c219ea8";')
+          replace(installer, 'private static final long SIZE = 23_595_235L;',
+                  'private static final long SIZE = 23_595_089L;')
+          replace(installer,
+                  '    private KiraziumCinemaInstaller() {}\n',
+                  '''    private static final String LEGACY_MANAGED_FILE_NAME =\n            "dreamdisplays-fabric-26.1.2-1.9.5-kirazium-android-stallfix1.jar";\n    private static final String LEGACY_MANAGED_SHA256 =\n            "918872694b9fe437b6c412dda287e717d33b654a1bf8885af0ceea0ed38caab1";\n    private static final long LEGACY_MANAGED_SIZE = 23_595_235L;\n\n    private KiraziumCinemaInstaller() {}\n''')
+          replace(installer,
+                  '        File destination = new File(modsDirectory, FILE_NAME);\n        File manualOverride = findManualDreamDisplays(modsDirectory, destination);',
+                  '''        File destination = new File(modsDirectory, FILE_NAME);\n        removeLegacyManagedFallback(modsDirectory);\n        File manualOverride = findManualDreamDisplays(modsDirectory, destination);''')
+          replace(installer,
+                  '        Log.i(TAG, "Installed exact DreamDisplays stallfix1 fallback into "\n                + destination.getAbsolutePath());',
+                  '        Log.i(TAG, "Installed exact DreamDisplays MOBILEFIX1 fallback into "\n                + destination.getAbsolutePath());')
+          replace(installer,
+                  '    private static File findManualDreamDisplays(File modsDirectory, File managedDestination)\n',
+                  '''    private static void removeLegacyManagedFallback(File modsDirectory) throws IOException {\n        File legacy = new File(modsDirectory, LEGACY_MANAGED_FILE_NAME);\n        if (!isLegacyManagedExact(legacy)) return;\n        if (legacy.delete()) {\n            Log.i(TAG, "Removed exact launcher-managed stallfix1 while upgrading to MOBILEFIX1.");\n            return;\n        }\n        File disabled = new File(modsDirectory, legacy.getName() + ".disabled");\n        if (disabled.exists() && !disabled.delete()) {\n            throw new IOException("Could not replace stale legacy DreamDisplays disabled file");\n        }\n        if (!legacy.renameTo(disabled)) {\n            throw new IOException("Could not disable legacy launcher-managed DreamDisplays fallback");\n        }\n        Log.i(TAG, "Disabled exact launcher-managed stallfix1 while upgrading to MOBILEFIX1.");\n    }\n\n    private static boolean isLegacyManagedExact(File file) throws IOException {\n        return file.isFile() && file.length() == LEGACY_MANAGED_SIZE &&\n                LEGACY_MANAGED_SHA256.equals(sha256(file));\n    }\n\n    private static File findManualDreamDisplays(File modsDirectory, File managedDestination)\n''')
+          replace(installer, 'Removed launcher-managed stallfix1 because a manual DreamDisplays override exists.',
+                  'Removed launcher-managed MOBILEFIX1 because a manual DreamDisplays override exists.')
+          replace(installer, 'Disabled launcher-managed stallfix1 because a manual DreamDisplays override exists.',
+                  'Disabled launcher-managed MOBILEFIX1 because a manual DreamDisplays override exists.')
+
+          replace(bootstrap,
+                  '"dreamdisplays-fabric-26.1.2-1.9.5-kirazium-android-stallfix1.jar";',
+                  '"dreamdisplays-fabric-26.1.2-1.9.5-kirazium-android-mobilefix1.jar";')
+          replace(bootstrap,
+                  '"918872694b9fe437b6c412dda287e717d33b654a1bf8885af0ceea0ed38caab1";',
+                  '"85a733decd6e0b5c190346935048822f22ca779901cbe3ee0a5155449c219ea8";')
+          replace(bootstrap, 'private static final long EMBEDDED_CINEMA_SIZE = 23_595_235L;',
+                  'private static final long EMBEDDED_CINEMA_SIZE = 23_595_089L;')
+          replace(bootstrap, '".kirazium-dreamdisplays-stallfix1";',
+                  '".kirazium-dreamdisplays-mobilefix1";')
+          replace(bootstrap, 'Log.i(TAG, "Installed embedded DreamDisplays stall-fix build");',
+                  'Log.i(TAG, "Installed embedded DreamDisplays MOBILEFIX1 build");')
+          PY
+
+          test -s "$CINEMA_JAR"
+          test "$(stat -c%s "$CINEMA_JAR")" = "$CINEMA_SIZE"
+          echo "$CINEMA_SHA256  $CINEMA_JAR" | sha256sum -c -
+          grep -F 'versionName "2.1"' app_pojavlauncher/build.gradle >/dev/null
+          grep -F "$CINEMA_SHA256" app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumCinemaInstaller.java >/dev/null
+          grep -F 'removeLegacyManagedFallback(modsDirectory);' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumCinemaInstaller.java >/dev/null
+          grep -F "$CINEMA_SHA256" app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumBootstrap.java >/dev/null
+          grep -F 'Installed embedded DreamDisplays MOBILEFIX1 build' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumBootstrap.java >/dev/null
+
+      - name: Download previous known-good KiraziumClient base APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/base-release"
+          gh release download kiraziumclient-final --repo "$GITHUB_REPOSITORY" --pattern 'KiraziumClient-FINAL-SIGNED.apk' --dir "$RUNNER_TEMP/base-release"
+          BASE_APK="$RUNNER_TEMP/base-release/KiraziumClient-FINAL-SIGNED.apk"
+          test -s "$BASE_APK"
+          echo "$BASE_FINAL_APK_SHA256  $BASE_APK" | sha256sum -c -
+
+      - name: Reuse exact phone-tested FFmpeg native bundle from base APK
+        run: |
+          set -euo pipefail
+          BASE_APK="$RUNNER_TEMP/base-release/KiraziumClient-FINAL-SIGNED.apk"
+          EXTRACT="$RUNNER_TEMP/base-native"
+          JNI_DIR="app_pojavlauncher/src/main/jniLibs/arm64-v8a"
+          rm -rf "$EXTRACT"
+          mkdir -p "$EXTRACT" "$JNI_DIR"
+          unzip -q "$BASE_APK" 'lib/arm64-v8a/*.so' -d "$EXTRACT"
+          copied=0
+          for lib in "$EXTRACT"/lib/arm64-v8a/*.so; do
+            name="$(basename "$lib")"
+            case "$name" in
+              libffmpeg.so|libffprobe.so|libav*.so|libsw*.so|libpostproc*.so|libgnutls*.so|libnettle*.so|libhogweed*.so|libgmp*.so|libiconv*.so|libcharset*.so|libtasn1*.so|libunistring*.so|libidn2*.so)
+                if [ -e "$JNI_DIR/$name" ]; then echo "::error::Refusing to overwrite existing launcher native library: $name"; exit 1; fi
+                cp "$lib" "$JNI_DIR/$name"
+                copied=$((copied + 1))
+                ;;
+            esac
+          done
+          test "$copied" -gt 10
+          test -s "$JNI_DIR/libffmpeg.so"
+          test -s "$JNI_DIR/libavformat.so"
+          test -s "$JNI_DIR/libavcodec.so"
+          strings "$JNI_DIR/libavformat.so" | grep -q -- '--enable-gnutls'
+          strings "$JNI_DIR/libavcodec.so" | grep -q -- '--enable-mediacodec'
+          strings "$JNI_DIR/libavcodec.so" | grep -q -- '--enable-jni'
+          readelf -Ws "$JNI_DIR/libavcodec.so" | grep -q 'av_jni_set_java_vm'
+          readelf -d "$JNI_DIR/libffmpeg.so" | grep -q 'libavdevice.so'
+          python3 tools/embedded-ffmpeg/patch-launcher.py
+          grep -F 'new File(ctx.getApplicationInfo().nativeLibraryDir, "libffmpeg.so")' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/JREUtils.java >/dev/null
+          grep -F 'Using embedded Kirazium FFmpeg:' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/utils/JREUtils.java >/dev/null
+
+      - name: Get pinned LTW renderer
+        uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
+        with:
+          repo: MojoLauncher/LTW
+          workflow: android.yml
+          workflow_conclusion: success
+          commit: 3aca75d9f3f05afd0b02a3d8f686084d968fa200
+          name: output-aar
+          path: app_pojavlauncher/libs
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK components
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$SDK_ROOT"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -perm -u+x | head -n 1 || true)"; fi
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "ndk;29.0.14206865" "platforms;android-36" "build-tools;36.0.0"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+
+      - name: Build KiraziumClient 2.1 APK
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          unset ANDROID_NDK_ROOT
+          ./gradlew :app_pojavlauncher:assembleFullRelease --stacktrace
+
+      - name: Verify version, MOBILEFIX1 and native runtime inside APK
+        run: |
+          set -euo pipefail
+          APK="$(find app_pojavlauncher/build/outputs/apk/full/release -type f -name '*.apk' | head -n 1)"
+          test -s "$APK"
+          mkdir -p verify/ffmpeg unsigned out
+
+          CINEMA_COUNT="$(unzip -Z1 "$APK" | grep -Ec '^assets/kirazium/mods/dreamdisplays-.*\.jar$')"
+          test "$CINEMA_COUNT" = 1
+          if unzip -Z1 "$APK" | grep -Fq "$LEGACY_CINEMA_NAME"; then
+            echo "::error::Legacy stallfix1 JAR leaked into 2.1 APK"; exit 1
+          fi
+          unzip -p "$APK" "assets/kirazium/mods/$CINEMA_JAR_NAME" > verify/dreamdisplays-mobilefix1.jar
+          test "$(stat -c%s verify/dreamdisplays-mobilefix1.jar)" = "$CINEMA_SIZE"
+          echo "$CINEMA_SHA256  verify/dreamdisplays-mobilefix1.jar" | sha256sum -c -
+          unzip -p verify/dreamdisplays-mobilefix1.jar fabric.mod.json | grep -F '1.9.5-kirazium-android-mobilefix1' >/dev/null
+
+          AAPT="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -x "$AAPT"
+          "$AAPT" dump badging "$APK" | grep -F "versionName='2.1'" >/dev/null
+
+          for name in libffmpeg.so libffprobe.so libavformat.so libavcodec.so libavdevice.so libavutil.so; do
+            unzip -p "$APK" "lib/arm64-v8a/$name" > "verify/ffmpeg/$name"
+            test -s "verify/ffmpeg/$name"
+          done
+          strings verify/ffmpeg/libavformat.so | grep -q -- '--enable-gnutls'
+          strings verify/ffmpeg/libavcodec.so | grep -q -- '--enable-jni'
+          readelf -d verify/ffmpeg/libffmpeg.so | grep -q 'libavdevice.so'
+
+          found_ffmpeg=0
+          found_mobilefix=0
+          found_migration=0
+          while IFS= read -r dex; do
+            data="$(mktemp)"
+            unzip -p "$APK" "$dex" > "$data"
+            if strings "$data" | grep -Fq 'Using embedded Kirazium FFmpeg:'; then found_ffmpeg=1; fi
+            if strings "$data" | grep -Fq 'Installed embedded DreamDisplays MOBILEFIX1 build'; then found_mobilefix=1; fi
+            if strings "$data" | grep -Fq 'Removed exact launcher-managed stallfix1 while upgrading to MOBILEFIX1.'; then found_migration=1; fi
+            rm -f "$data"
+          done < <(unzip -Z1 "$APK" | grep -E '^classes([0-9]+)?\.dex$')
+          test "$found_ffmpeg" = 1
+          test "$found_mobilefix" = 1
+          test "$found_migration" = 1
+
+          unzip -p "$APK" lib/arm64-v8a/libpojavexec.so > verify/libpojavexec.so
+          unzip -p "$APK" lib/arm64-v8a/libmobileglues.so > verify/libmobileglues.so
+          readelf -Ws verify/libpojavexec.so | grep -F 'kirazium_get_android_art_vm' >/dev/null
+          file verify/libmobileglues.so | grep -F 'ARM aarch64' >/dev/null
+          cp "$APK" unsigned/KiraziumClient-2.1-unsigned.apk
+
+      - name: Prepare and verify production signing key
+        env:
+          KIRAZIUM_KEYSTORE_B64: ${{ secrets.KIRAZIUM_KEYSTORE_B64 }}
+          KIRAZIUM_KEYSTORE_PASSWORD: ${{ secrets.KIRAZIUM_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          SIGNING_DIR="$RUNNER_TEMP/kirazium-signing"
+          mkdir -p "$SIGNING_DIR"
+          chmod 700 "$SIGNING_DIR"
+          printf '%s' "$KIRAZIUM_KEYSTORE_B64" | tr -d '[:space:]' | base64 --decode > "$SIGNING_DIR/kirazium-release.jks"
+          chmod 600 "$SIGNING_DIR/kirazium-release.jks"
+          test "$(sha256sum "$SIGNING_DIR/kirazium-release.jks" | awk '{print $1}')" = "$EXPECTED_KIRAZIUM_KEYSTORE_SHA256"
+          SIGNING_PASSWORD="$(printf '%s' "$KIRAZIUM_KEYSTORE_PASSWORD" | tr -d '\r\n')"
+          KEYTOOL_OUTPUT="$(keytool -list -v -keystore "$SIGNING_DIR/kirazium-release.jks" -storepass "$SIGNING_PASSWORD" -alias kirazium 2>/dev/null)"
+          ACTUAL_CERT_SHA256="$(printf '%s\n' "$KEYTOOL_OUTPUT" | awk -F': ' '/SHA256:/{gsub(":", "", $2); print tolower($2); exit}')"
+          test "$ACTUAL_CERT_SHA256" = "$EXPECTED_KIRAZIUM_CERT_SHA256"
+
+      - name: Sign and verify KiraziumClient 2.1
+        env:
+          KIRAZIUM_KEYSTORE_PASSWORD: ${{ secrets.KIRAZIUM_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          APKSIGNER="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$APKSIGNER"
+          SIGNING_PASSWORD="$(printf '%s' "$KIRAZIUM_KEYSTORE_PASSWORD" | tr -d '\r\n')"
+          export KIRAZIUM_SIGNING_PASSWORD="$SIGNING_PASSWORD"
+          "$APKSIGNER" sign --ks "$RUNNER_TEMP/kirazium-signing/kirazium-release.jks" --ks-key-alias kirazium --ks-pass env:KIRAZIUM_SIGNING_PASSWORD --key-pass env:KIRAZIUM_SIGNING_PASSWORD --out out/KiraziumClient-2.1-SIGNED.apk unsigned/KiraziumClient-2.1-unsigned.apk
+          VERIFY_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs out/KiraziumClient-2.1-SIGNED.apk)"
+          printf '%s\n' "$VERIFY_OUTPUT"
+          SIGNED_CERT_SHA256="$(printf '%s\n' "$VERIFY_OUTPUT" | awk -F': ' '/certificate SHA-256 digest/{value=$NF; gsub(":", "", value); print tolower(value); exit}')"
+          test "$SIGNED_CERT_SHA256" = "$EXPECTED_KIRAZIUM_CERT_SHA256"
+          sha256sum out/KiraziumClient-2.1-SIGNED.apk > out/KiraziumClient-2.1-SIGNED.apk.sha256
+
+      - name: Publish KiraziumClient 2.1 GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="kiraziumclient-2.1"
+          printf 'release=2.1\nsource_commit=%s\nsource_branch=main\nworkflow=release-2.1\nbase_release_apk_sha256=%s\nmobilefix1_source_commit=%s\ndreamdisplays_install=embedded-mobilefix1-auto\ndreamdisplays_runtime_source=tested-mobilefix1\ndreamdisplays_embedded_sha256=%s\ndreamdisplays_embedded_size=%s\nlegacy_stallfix1_migration=exact-hash-only\ndecode=software\nhelper_apk=none\n' "$GITHUB_SHA" "$BASE_FINAL_APK_SHA256" "$MOBILEFIX1_COMMIT" "$CINEMA_SHA256" "$CINEMA_SIZE" > out/BUILD_INFO-2.1.txt
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "KiraziumClient 2.1" --notes "KiraziumClient 2.1 with embedded DreamDisplays MOBILEFIX1. Keeps the known-good embedded FFmpeg/software-decode runtime, no helper APK. Exact legacy stallfix1 fallback is migrated automatically; manual custom DreamDisplays overrides remain protected."
+          fi
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" \
+            out/KiraziumClient-2.1-SIGNED.apk \
+            out/KiraziumClient-2.1-SIGNED.apk.sha256 \
+            out/BUILD_INFO-2.1.txt \
+            --clobber
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | tee /tmp/release-assets.txt
+          grep -Fx 'KiraziumClient-2.1-SIGNED.apk' /tmp/release-assets.txt >/dev/null
+          grep -Fx 'KiraziumClient-2.1-SIGNED.apk.sha256' /tmp/release-assets.txt >/dev/null
+          grep -Fx 'BUILD_INFO-2.1.txt' /tmp/release-assets.txt >/dev/null
+
+      - name: Remove signing material
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/kirazium-signing"
