@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app_pojavlauncher/src/main/res/drawable-nodpi/ic_kirazium_launcher.webp" width="180" alt="Kirazium Launcher Logo">
+  <img src=".github/kirazium-logo.png" width="180" alt="Kirazium Launcher Logo">
 </p>
 
 <h1 align="center">Kirazium Launcher</h1>
