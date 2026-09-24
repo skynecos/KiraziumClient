@@ -13,7 +13,6 @@ import android.os.Environment;
 import android.provider.Settings;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.FileProvider;
 
 import net.kdt.pojavlaunch.PojavApplication;
@@ -78,6 +77,9 @@ public final class KiraziumUpdater {
                 if (release.optBoolean("draft", false) || release.optBoolean("prerelease", false)) return;
 
                 String remoteVersion = normalizeVersion(release.optString("tag_name", ""));
+                if (remoteVersion.isEmpty()) {
+                    remoteVersion = normalizeVersion(release.optString("name", ""));
+                }
                 String currentVersion = getCurrentVersionName(activity);
                 ReleaseAssets assets = findReleaseAssets(release.optJSONArray("assets"));
                 if (remoteVersion.isEmpty() || currentVersion.isEmpty() || assets == null ||
@@ -159,8 +161,8 @@ public final class KiraziumUpdater {
                     throw new IllegalStateException("İndirme klasörü oluşturulamadı.");
                 }
 
-                finalFile = new File(downloadDir, "KiraziumLauncher-" + version + ".apk");
-                tempFile = new File(downloadDir, "KiraziumLauncher-" + version + ".apk.part");
+                finalFile = new File(downloadDir, "KiraziumClient-" + version + ".apk");
+                tempFile = new File(downloadDir, "KiraziumClient-" + version + ".apk.part");
                 if (tempFile.isFile() && !tempFile.delete()) {
                     throw new IllegalStateException("Eski geçici güncelleme dosyası silinemedi.");
                 }
@@ -257,7 +259,7 @@ public final class KiraziumUpdater {
             if (checksumText.isEmpty()) throw new SecurityException("SHA-256 dosyası boş.");
 
             String firstToken = checksumText.split("\\s+", 2)[0].trim();
-            if (!firstToken.matches("[0-9a-fA-F]{128}")) {
+            if (!firstToken.matches("[0-9a-fA-F]{64}")) {
                 throw new SecurityException("SHA-256 formatı geçersiz.");
             }
             return firstToken.toLowerCase(Locale.ROOT);
