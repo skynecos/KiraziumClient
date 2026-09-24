@@ -36,12 +36,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class KiraziumUpdater {
     private static final String RELEASE_API =
             "https://api.github.com/repos/skynecos/KiraziumClient/releases/latest";
-    private static final byte[] EXPECTED_KIRAZIUM_CERT_SHA256 = new byte[] {
-            32, 109, 10, 98, 57, 115, (byte) 209, 43,
-            111, 80, (byte) 241, 71, (byte) 214, (byte) 233, 65, 124,
-            22, 79, 59, 102, (byte) 163, 12, (byte) 225, (byte) 244,
-            24, (byte) 195, 73, 64, (byte) 233, 75, (byte) 183, 85
-    };
+    private static final byte[] EXPECTED_KIRAZIUM_CERT_SHA256 = decodeSha256(
+            "912671e0b010d902cf148b673c4edf2f5560c86afa2e02f877f2862e0e0de90d");
     private static final String PREFS_NAME = "kirazium_updater";
     private static final String KEY_LAST_CHECK = "last_check";
     private static final String KEY_PENDING_APK = "pending_apk";
