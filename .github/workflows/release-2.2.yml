@@ -68,12 +68,10 @@ jobs:
           BASE_SUM="$BASE_DIR/KiraziumClient-2.1-SIGNED.apk.sha256"
           test -s "$BASE_APK"
           test -s "$BASE_SUM"
-          (
-            cd "$BASE_DIR"
-            sha256sum -c KiraziumClient-2.1-SIGNED.apk.sha256
-          )
           BASE_2_1_APK_SHA256="$(awk '{print $1; exit}' "$BASE_SUM")"
           test -n "$BASE_2_1_APK_SHA256"
+          ACTUAL_BASE_SHA256="$(sha256sum "$BASE_APK" | awk '{print $1}')"
+          test "$ACTUAL_BASE_SHA256" = "$BASE_2_1_APK_SHA256"
           echo "BASE_2_1_APK_SHA256=$BASE_2_1_APK_SHA256" >> "$GITHUB_ENV"
 
           SRC="$RUNNER_TEMP/mobilefix1/$CINEMA_JAR_NAME"
