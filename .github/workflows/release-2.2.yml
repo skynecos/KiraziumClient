@@ -15,7 +15,6 @@ env:
   EXPECTED_KIRAZIUM_CERT_SHA256: "912671e0b010d902cf148b673c4edf2f5560c86afa2e02f877f2862e0e0de90d"
   EXPECTED_KIRAZIUM_KEYSTORE_SHA256: "be1bc024531f15fa4cd0a21d3a12681e7c122535e1224ee2573dd98c1e57054d"
   EXPECTED_MOBILEGLUES_COMMIT: "f56af31d3e490d95808b3adc4ace20234249a37a"
-  BASE_FINAL_APK_SHA256: "78ba85e0f13fc652fd846e23bdd5e3fbaa0271cdce14764e6b7d33a275cc487c"
   MOBILEFIX1_COMMIT: "4fd2a2ec1cf5c8203dc4604cc84e2f3d9a7f43fe"
   CINEMA_JAR_NAME: "dreamdisplays-fabric-26.1.2-1.9.5-kirazium-android-mobilefix1.jar"
   CINEMA_JAR: "app_pojavlauncher/src/main/assets/kirazium/mods/dreamdisplays-fabric-26.1.2-1.9.5-kirazium-android-mobilefix1.jar"
@@ -54,15 +53,35 @@ jobs:
           grep -F "$LEGACY_CINEMA_SHA256" app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumCinemaInstaller.java >/dev/null
           grep -F "$LEGACY_CINEMA_SHA256" app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumBootstrap.java >/dev/null
 
-      - name: Download verified MOBILEFIX1 artifact
-        uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
-        with:
-          repo: skynecos/dreamdisplays
-          workflow: mobilefix1.yml
-          workflow_conclusion: success
-          commit: 4fd2a2ec1cf5c8203dc4604cc84e2f3d9a7f43fe
-          name: dreamdisplays-android-mobilefix1
-          path: ${{ runner.temp }}/mobilefix1
+      - name: Download verified KiraziumClient 2.1 base
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          BASE_DIR="$RUNNER_TEMP/base-2.1"
+          mkdir -p "$BASE_DIR" "$RUNNER_TEMP/mobilefix1"
+          gh release download kiraziumclient-2.1 --repo "$GITHUB_REPOSITORY" \
+            --pattern 'KiraziumClient-2.1-SIGNED.apk' \
+            --pattern 'KiraziumClient-2.1-SIGNED.apk.sha256' \
+            --dir "$BASE_DIR"
+          BASE_APK="$BASE_DIR/KiraziumClient-2.1-SIGNED.apk"
+          BASE_SUM="$BASE_DIR/KiraziumClient-2.1-SIGNED.apk.sha256"
+          test -s "$BASE_APK"
+          test -s "$BASE_SUM"
+          (
+            cd "$BASE_DIR"
+            sha256sum -c KiraziumClient-2.1-SIGNED.apk.sha256
+          )
+          BASE_2_1_APK_SHA256="$(awk '{print $1; exit}' "$BASE_SUM")"
+          test -n "$BASE_2_1_APK_SHA256"
+          echo "BASE_2_1_APK_SHA256=$BASE_2_1_APK_SHA256" >> "$GITHUB_ENV"
+
+          SRC="$RUNNER_TEMP/mobilefix1/$CINEMA_JAR_NAME"
+          unzip -p "$BASE_APK" "assets/kirazium/mods/$CINEMA_JAR_NAME" > "$SRC"
+          test -s "$SRC"
+          test "$(stat -c%s "$SRC")" = "$CINEMA_SIZE"
+          echo "$CINEMA_SHA256  $SRC" | sha256sum -c -
+          unzip -p "$SRC" fabric.mod.json | grep -F '1.9.5-kirazium-android-mobilefix1' >/dev/null
 
       - name: Embed exact MOBILEFIX1 payload and patch release 2.2 source
         run: |
@@ -143,21 +162,17 @@ jobs:
           grep -F "$CINEMA_SHA256" app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumBootstrap.java >/dev/null
           grep -F 'Installed embedded DreamDisplays MOBILEFIX1 build' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumBootstrap.java >/dev/null
 
-      - name: Download previous known-good KiraziumClient base APK
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Verify previous KiraziumClient 2.1 base APK
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/base-release"
-          gh release download kiraziumclient-final --repo "$GITHUB_REPOSITORY" --pattern 'KiraziumClient-FINAL-SIGNED.apk' --dir "$RUNNER_TEMP/base-release"
-          BASE_APK="$RUNNER_TEMP/base-release/KiraziumClient-FINAL-SIGNED.apk"
+          BASE_APK="$RUNNER_TEMP/base-2.1/KiraziumClient-2.1-SIGNED.apk"
           test -s "$BASE_APK"
-          echo "$BASE_FINAL_APK_SHA256  $BASE_APK" | sha256sum -c -
+          test -n "${BASE_2_1_APK_SHA256:-}"
 
       - name: Reuse exact phone-tested FFmpeg native bundle from base APK
         run: |
           set -euo pipefail
-          BASE_APK="$RUNNER_TEMP/base-release/KiraziumClient-FINAL-SIGNED.apk"
+          BASE_APK="$RUNNER_TEMP/base-2.1/KiraziumClient-2.1-SIGNED.apk"
           EXTRACT="$RUNNER_TEMP/base-native"
           JNI_DIR="app_pojavlauncher/src/main/jniLibs/arm64-v8a"
           rm -rf "$EXTRACT"
@@ -316,7 +331,7 @@ jobs:
         run: |
           set -euo pipefail
           TAG="kiraziumclient-2.2"
-          printf 'release=2.2\nsource_commit=%s\nsource_branch=main\nworkflow=release-2.2\nbase_release_apk_sha256=%s\nmobilefix1_source_commit=%s\ndreamdisplays_install=embedded-mobilefix1-auto\ndreamdisplays_runtime_source=tested-mobilefix1\ndreamdisplays_embedded_sha256=%s\ndreamdisplays_embedded_size=%s\nlegacy_stallfix1_migration=exact-hash-only\ndecode=software\nhelper_apk=none\n' "$GITHUB_SHA" "$BASE_FINAL_APK_SHA256" "$MOBILEFIX1_COMMIT" "$CINEMA_SHA256" "$CINEMA_SIZE" > out/BUILD_INFO-2.2.txt
+          printf 'release=2.2\nsource_commit=%s\nsource_branch=main\nworkflow=release-2.2\nbase_release_apk_sha256=%s\nmobilefix1_source_commit=%s\ndreamdisplays_install=embedded-mobilefix1-auto\ndreamdisplays_runtime_source=tested-mobilefix1\ndreamdisplays_embedded_sha256=%s\ndreamdisplays_embedded_size=%s\nlegacy_stallfix1_migration=exact-hash-only\ndecode=software\nhelper_apk=none\n' "$GITHUB_SHA" "$BASE_2_1_APK_SHA256" "$MOBILEFIX1_COMMIT" "$CINEMA_SHA256" "$CINEMA_SIZE" > out/BUILD_INFO-2.2.txt
           if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "KiraziumClient 2.2" --notes "KiraziumClient 2.2: new Kirazium branding/logo, automatic in-app GitHub Release updater, embedded DreamDisplays MOBILEFIX1. Keeps the known-good embedded FFmpeg/software-decode runtime, no helper APK. Exact legacy stallfix1 fallback is migrated automatically; manual custom DreamDisplays overrides remain protected."
           fi
