@@ -36,9 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /** Automatic GitHub Releases updater for Kirazium Launcher. */
 public final class KiraziumUpdater {
     private static final String RELEASE_API =
-            "https://api.github.com/repos/skynecos/KiraziumLauncher/releases/latest";
-    private static final String APK_ASSET_NAME = "KiraziumLauncher.apk";
-    private static final String CHECKSUM_ASSET_NAME = APK_ASSET_NAME + ".sha512";
+            "https://api.github.com/repos/skynecos/KiraziumClient/releases/latest";
     private static final byte[] EXPECTED_KIRAZIUM_CERT_SHA256 = new byte[] {
             32, 109, 10, 98, 57, 115, (byte) 209, 43,
             111, 80, (byte) 241, 71, (byte) 214, (byte) 233, 65, 124,
@@ -80,14 +78,19 @@ public final class KiraziumUpdater {
                 if (release.optBoolean("draft", false) || release.optBoolean("prerelease", false)) return;
 
                 String remoteVersion = normalizeVersion(release.optString("tag_name", ""));
-                long remoteBuild = extractBuildNumber(remoteVersion);
-                long currentBuild = getCurrentVersionCode(activity);
+                String currentVersion = getCurrentVersionName(activity);
                 ReleaseAssets assets = findReleaseAssets(release.optJSONArray("assets"));
-                if (remoteBuild < 0 || assets == null || remoteBuild <= currentBuild) return;
+                if (remoteVersion.isEmpty() || currentVersion.isEmpty() || assets == null ||
+                        compareVersions(remoteVersion, currentVersion) <= 0) return;
 
-                long finalRemoteBuild = remoteBuild;
-                activity.runOnUiThread(() -> showUpdateDialog(
-                        activity, remoteVersion, currentBuild, finalRemoteBuild, assets));
+                activity.runOnUiThread(() -> {
+                    if (activity.isFinishing() ||
+                            (Build.VERSION.SDK_INT >= 17 && activity.isDestroyed())) return;
+                    Toast.makeText(activity,
+                            "Kirazium " + remoteVersion + " güncellemesi bulundu. İndiriliyor...",
+                            Toast.LENGTH_LONG).show();
+                    downloadUpdate(activity, remoteVersion, assets);
+                });
             } catch (Exception ignored) {
                 // Update checks must never block or crash the launcher.
             } finally {
@@ -125,22 +128,6 @@ public final class KiraziumUpdater {
         }
     }
 
-    private static void showUpdateDialog(Activity activity, String remoteVersion,
-                                         long currentBuild, long remoteBuild,
-                                         ReleaseAssets assets) {
-        if (activity.isFinishing() || (Build.VERSION.SDK_INT >= 17 && activity.isDestroyed())) return;
-        new AlertDialog.Builder(activity)
-                .setTitle("Kirazium güncellemesi hazır")
-                .setMessage("Yeni sürüm: " + remoteVersion +
-                        "\nMevcut build: " + currentBuild +
-                        "\nYeni build: " + remoteBuild +
-                        "\n\nAPK imzası ve SHA-512 doğrulandıktan sonra Android yükleyicisi açılacak.")
-                .setPositiveButton("İndir ve Güncelle", (dialog, which) ->
-                        downloadUpdate(activity, remoteVersion, assets))
-                .setNegativeButton("Sonra", null)
-                .show();
-    }
-
     private static void downloadUpdate(Activity activity, String version, ReleaseAssets assets) {
         if (!DOWNLOAD_RUNNING.compareAndSet(false, true)) {
             Toast.makeText(activity, "Güncelleme zaten indiriliyor.", Toast.LENGTH_SHORT).show();
@@ -164,7 +151,7 @@ public final class KiraziumUpdater {
                     throw new SecurityException("Release APK boyutu güvenlik sınırının dışında.");
                 }
 
-                String expectedSha512 = downloadExpectedSha512(assets.checksumUrl);
+                String expectedSha256 = downloadExpectedSha256(assets.checksumUrl);
 
                 File downloadDir = activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
                 if (downloadDir == null) throw new IllegalStateException("İndirme klasörü açılamadı.");
@@ -194,7 +181,7 @@ public final class KiraziumUpdater {
                 long total = assets.expectedSize;
                 activity.runOnUiThread(() -> progress.setIndeterminate(false));
 
-                MessageDigest digest = MessageDigest.getInstance("SHA-512");
+                MessageDigest digest = MessageDigest.getInstance("SHA-256");
                 try (BufferedInputStream input = new BufferedInputStream(connection.getInputStream());
                      FileOutputStream fileOutput = new FileOutputStream(tempFile)) {
                     byte[] buffer = new byte[64 * 1024];
@@ -224,10 +211,10 @@ public final class KiraziumUpdater {
                     }
                 }
 
-                byte[] expectedDigest = decodeSha512(expectedSha512);
+                byte[] expectedDigest = decodeSha256(expectedSha256);
                 byte[] actualDigest = digest.digest();
                 if (!MessageDigest.isEqual(expectedDigest, actualDigest)) {
-                    throw new SecurityException("APK SHA-512 doğrulaması başarısız.");
+                    throw new SecurityException("APK SHA-256 doğrulaması başarısız.");
                 }
 
                 verifyDownloadedApk(activity, tempFile);
@@ -259,19 +246,19 @@ public final class KiraziumUpdater {
         });
     }
 
-    private static String downloadExpectedSha512(String checksumUrl) throws Exception {
+    private static String downloadExpectedSha256(String checksumUrl) throws Exception {
         HttpURLConnection connection = null;
         try {
             connection = openConnection(checksumUrl);
             if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                throw new SecurityException("SHA-512 dosyası indirilemedi.");
+                throw new SecurityException("SHA-256 dosyası indirilemedi.");
             }
             String checksumText = readStream(connection.getInputStream(), MAX_CHECKSUM_BYTES).trim();
-            if (checksumText.isEmpty()) throw new SecurityException("SHA-512 dosyası boş.");
+            if (checksumText.isEmpty()) throw new SecurityException("SHA-256 dosyası boş.");
 
             String firstToken = checksumText.split("\\s+", 2)[0].trim();
             if (!firstToken.matches("[0-9a-fA-F]{128}")) {
-                throw new SecurityException("SHA-512 formatı geçersiz.");
+                throw new SecurityException("SHA-256 formatı geçersiz.");
             }
             return firstToken.toLowerCase(Locale.ROOT);
         } finally {
@@ -453,15 +440,15 @@ public final class KiraziumUpdater {
         return connection.getContentLength();
     }
 
-    private static byte[] decodeSha512(String hex) {
-        if (hex == null || !hex.matches("[0-9a-fA-F]{128}")) {
-            throw new SecurityException("SHA-512 biçimi geçersiz.");
+    private static byte[] decodeSha256(String hex) {
+        if (hex == null || !hex.matches("[0-9a-fA-F]{64}")) {
+            throw new SecurityException("SHA-256 biçimi geçersiz.");
         }
-        byte[] bytes = new byte[64];
+        byte[] bytes = new byte[32];
         for (int i = 0; i < bytes.length; i++) {
             int high = Character.digit(hex.charAt(i * 2), 16);
             int low = Character.digit(hex.charAt(i * 2 + 1), 16);
-            if (high < 0 || low < 0) throw new SecurityException("SHA-512 biçimi geçersiz.");
+            if (high < 0 || low < 0) throw new SecurityException("SHA-256 biçimi geçersiz.");
             bytes[i] = (byte) ((high << 4) | low);
         }
         return bytes;
@@ -470,58 +457,97 @@ public final class KiraziumUpdater {
     private static ReleaseAssets findReleaseAssets(JSONArray assets) {
         if (assets == null) return null;
 
-        String apkUrl = null;
-        String checksumUrl = null;
-        long apkSize = -1L;
-
+        JSONObject selectedApk = null;
         for (int i = 0; i < assets.length(); i++) {
             JSONObject asset = assets.optJSONObject(i);
             if (asset == null) continue;
 
             String name = asset.optString("name", "");
-            String url = asset.optString("browser_download_url", "");
-            if (url.isEmpty()) continue;
+            String lower = name.toLowerCase(Locale.ROOT);
+            if (!lower.startsWith("kiraziumclient") || !lower.endsWith(".apk") ||
+                    lower.contains("unsigned")) continue;
 
-            if (APK_ASSET_NAME.equals(name)) {
-                apkUrl = url;
-                apkSize = asset.optLong("size", -1L);
-            } else if (CHECKSUM_ASSET_NAME.equals(name)) {
-                checksumUrl = url;
+            if ("KiraziumClient.apk".equals(name)) {
+                selectedApk = asset;
+                break;
+            }
+            if (selectedApk == null ||
+                    (lower.contains("signed") &&
+                            !selectedApk.optString("name", "").toLowerCase(Locale.ROOT)
+                                    .contains("signed"))) {
+                selectedApk = asset;
             }
         }
 
-        if (apkUrl == null || checksumUrl == null || apkSize <= 0L || apkSize > MAX_APK_BYTES) {
+        if (selectedApk == null) return null;
+
+        String apkName = selectedApk.optString("name", "");
+        String apkUrl = selectedApk.optString("browser_download_url", "");
+        long apkSize = selectedApk.optLong("size", -1L);
+        String checksumName = apkName + ".sha256";
+        String checksumUrl = null;
+
+        for (int i = 0; i < assets.length(); i++) {
+            JSONObject asset = assets.optJSONObject(i);
+            if (asset == null) continue;
+            if (checksumName.equals(asset.optString("name", ""))) {
+                checksumUrl = asset.optString("browser_download_url", "");
+                break;
+            }
+        }
+
+        if (apkUrl.isEmpty() || checksumUrl == null || checksumUrl.isEmpty() ||
+                apkSize <= 0L || apkSize > MAX_APK_BYTES) {
             return null;
         }
-        return new ReleaseAssets(apkUrl, checksumUrl, apkSize);
+        return new ReleaseAssets(apkName, apkUrl, checksumUrl, apkSize);
     }
 
-    private static long extractBuildNumber(String version) {
-        if (version == null || !version.matches("\\d+\\.\\d+\\.\\d+")) return -1L;
+    private static int compareVersions(String first, String second) {
+        int[] a = parseVersion(first);
+        int[] b = parseVersion(second);
+        if (a == null || b == null) return 0;
+
+        int length = Math.max(a.length, b.length);
+        for (int i = 0; i < length; i++) {
+            int left = i < a.length ? a[i] : 0;
+            int right = i < b.length ? b[i] : 0;
+            if (left != right) return Integer.compare(left, right);
+        }
+        return 0;
+    }
+
+    private static int[] parseVersion(String value) {
+        if (value == null) return null;
+        String normalized = normalizeVersion(value);
+        if (normalized.isEmpty()) return null;
+
+        String[] pieces = normalized.split("\\.");
+        int[] result = new int[pieces.length];
         try {
-            String[] pieces = version.split("\\.");
-            return Long.parseLong(pieces[2]);
-        } catch (Exception ignored) {
-            return -1L;
+            for (int i = 0; i < pieces.length; i++) {
+                result[i] = Integer.parseInt(pieces[i]);
+            }
+            return result;
+        } catch (NumberFormatException ignored) {
+            return null;
         }
     }
 
-    private static long getCurrentVersionCode(Activity activity) {
+    private static String getCurrentVersionName(Activity activity) {
         try {
             PackageInfo info = activity.getPackageManager().getPackageInfo(activity.getPackageName(), 0);
-            return getVersionCode(info);
+            return normalizeVersion(info.versionName);
         } catch (Exception ignored) {
-            return -1L;
+            return "";
         }
     }
 
     private static String normalizeVersion(String version) {
         if (version == null) return "";
-        String normalized = version.trim();
-        if (normalized.startsWith("v") || normalized.startsWith("V")) {
-            normalized = normalized.substring(1);
-        }
-        return normalized;
+        java.util.regex.Matcher matcher =
+                java.util.regex.Pattern.compile("(\\d+(?:\\.\\d+){1,3})").matcher(version.trim());
+        return matcher.find() ? matcher.group(1) : "";
     }
 
     private static SharedPreferences prefs(Activity activity) {
@@ -529,11 +555,13 @@ public final class KiraziumUpdater {
     }
 
     private static final class ReleaseAssets {
+        final String apkName;
         final String apkUrl;
         final String checksumUrl;
         final long expectedSize;
 
-        ReleaseAssets(String apkUrl, String checksumUrl, long expectedSize) {
+        ReleaseAssets(String apkName, String apkUrl, String checksumUrl, long expectedSize) {
+            this.apkName = apkName;
             this.apkUrl = apkUrl;
             this.checksumUrl = checksumUrl;
             this.expectedSize = expectedSize;
