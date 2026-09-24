@@ -81,13 +81,15 @@ public final class KiraziumUpdater {
                 if (remoteVersion.isEmpty() || currentVersion.isEmpty() || assets == null ||
                         compareVersions(remoteVersion, currentVersion) <= 0) return;
 
+                final String availableVersion = remoteVersion;
+                final ReleaseAssets availableAssets = assets;
                 activity.runOnUiThread(() -> {
                     if (activity.isFinishing() ||
                             (Build.VERSION.SDK_INT >= 17 && activity.isDestroyed())) return;
                     Toast.makeText(activity,
-                            "Kirazium " + remoteVersion + " güncellemesi bulundu. İndiriliyor...",
+                            "Kirazium " + availableVersion + " güncellemesi bulundu. İndiriliyor...",
                             Toast.LENGTH_LONG).show();
-                    downloadUpdate(activity, remoteVersion, assets);
+                    downloadUpdate(activity, availableVersion, availableAssets);
                 });
             } catch (Exception ignored) {
                 // Update checks must never block or crash the launcher.
