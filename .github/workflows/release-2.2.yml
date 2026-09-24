@@ -260,7 +260,9 @@ jobs:
 
           AAPT="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name aapt | sort -V | tail -n 1)"
           test -x "$AAPT"
-          "$AAPT" dump badging "$APK" | grep -F "versionName='2.1'" >/dev/null
+          "$AAPT" dump badging "$APK" | tee verify/aapt-badging.txt
+          grep -F "versionName='2.2'" verify/aapt-badging.txt >/dev/null
+          grep -F "versionCode='220000'" verify/aapt-badging.txt >/dev/null
 
           for name in libffmpeg.so libffprobe.so libavformat.so libavcodec.so libavdevice.so libavutil.so; do
             unzip -p "$APK" "lib/arm64-v8a/$name" > "verify/ffmpeg/$name"
