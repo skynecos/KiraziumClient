@@ -1,0 +1,43 @@
+name: Kirazium MythicDungeons 26.1.2 Runtime
+
+on:
+  push:
+    branches:
+      - kirazium-md2612-runtime-test
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Download Paper 26.1.2 build 74
+        shell: bash
+        run: |
+          set -euxo pipefail
+          java -version
+          curl -L --fail --retry 3             -o paper.jar             'https://fill-data.papermc.io/v1/objects/1d70b1dab9cf4a6de615209a536f3a45a2186240253c428213ce2188ab95e5f7/paper-26.1.2-74.jar'
+          test -s paper.jar
+          sha256sum paper.jar
+
+      - name: Pack Java 25 runtime and Paper
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p payload
+          cp -a "$JAVA_HOME" payload/jdk25
+          cp paper.jar payload/paper.jar
+          tar -C payload -czf md2612-runtime.tar.gz jdk25 paper.jar
+          ls -lh md2612-runtime.tar.gz
+
+      - name: Upload runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: md2612-runtime
+          path: md2612-runtime.tar.gz
+          if-no-files-found: error
+          retention-days: 1
