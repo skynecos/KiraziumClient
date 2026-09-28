@@ -230,12 +230,20 @@
 				app:layout_constraintTop_toBottomOf="@id/ram_card" />
 
 			<com.kdt.mcgui.LauncherMenuButton
+				android:id="@+id/shader_packs_button"
+				style="@style/LauncherMenuButton.Universal"
+				android:layout_width="match_parent"
+				android:drawableStart="@drawable/ic_px_image"
+				android:text="@string/shader_packs_menu"
+				app:layout_constraintTop_toBottomOf="@id/texture_packs_button" />
+
+			<com.kdt.mcgui.LauncherMenuButton
 				android:id="@+id/mods_button"
 				style="@style/LauncherMenuButton.Universal"
 				android:layout_width="match_parent"
 				android:drawableStart="@drawable/ic_px_java"
 				android:text="@string/mods_menu"
-				app:layout_constraintTop_toBottomOf="@id/texture_packs_button" />
+				app:layout_constraintTop_toBottomOf="@id/shader_packs_button" />
 
 			<com.kdt.mcgui.LauncherMenuButton
 				android:id="@+id/custom_control_button"
