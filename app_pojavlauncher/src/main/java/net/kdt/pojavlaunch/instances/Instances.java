@@ -19,6 +19,9 @@ import java.util.UUID;
 public class Instances {
     private static final File sInstancePath = new File(Tools.DIR_GAME_HOME, "instances");
     public static final File SHARED_DATA_DIRECTORY = new File(Tools.DIR_GAME_HOME, "shared_dir");
+    private static final String PREF_KEY_KIRAZIUM_RENDERER_INHERITANCE_V1 =
+            "kiraziumRendererInheritanceV1";
+    private static final String LEGACY_KIRAZIUM_RENDERER = "opengles3_ltw";
 
     public final List<DisplayInstance> list;
     public final int selectedIndex;
@@ -94,12 +97,57 @@ public class Instances {
             setSelectedInstance(instances.get(0));
             selectionIndex[0] = 0;
         }
+        migrateLegacyKiraziumRendererDefault();
         KiraziumBootstrap.ensureClientFiles(instances);
         return new Instances(Collections.unmodifiableList(instances), selectionIndex[0]);
     }
 
     public static List<Instance> loadAllInstances() throws IOException {
         return loadInstances(Instance.class, null);
+    }
+
+    /**
+     * Older KiraziumClient builds created the bundled Kirazium instance with LTW hard-coded.
+     * That silently overrode the renderer selected in global Video settings. Migrate only the
+     * launcher-created Kirazium instance(s), once, so they inherit the global renderer again.
+     */
+    private static void migrateLegacyKiraziumRendererDefault() {
+        if (LauncherPreferences.DEFAULT_PREF == null ||
+                LauncherPreferences.DEFAULT_PREF.getBoolean(
+                        PREF_KEY_KIRAZIUM_RENDERER_INHERITANCE_V1, false)) {
+            return;
+        }
+
+        try {
+            boolean migrated = false;
+            for (Instance instance : loadInstances(Instance.class, null)) {
+                boolean launcherCreatedKirazium =
+                        instance.mInstanceRoot != null &&
+                        instance.mInstanceRoot.getName().startsWith("kirazium-") &&
+                        KiraziumBootstrap.PROFILE_NAME.equals(instance.name);
+
+                if (!launcherCreatedKirazium ||
+                        !LEGACY_KIRAZIUM_RENDERER.equals(instance.renderer)) {
+                    continue;
+                }
+
+                instance.renderer = null;
+                instance.write();
+                migrated = true;
+            }
+
+            LauncherPreferences.DEFAULT_PREF.edit()
+                    .putBoolean(PREF_KEY_KIRAZIUM_RENDERER_INHERITANCE_V1, true)
+                    .apply();
+
+            if (migrated) {
+                Log.i("Instances",
+                        "Migrated legacy Kirazium LTW override to global renderer inheritance");
+            }
+        } catch (IOException exception) {
+            // Do not mark the migration complete so it can be retried on the next launcher start.
+            Log.w("Instances", "Could not migrate legacy Kirazium renderer override", exception);
+        }
     }
 
     private static File findNewInstanceRoot(String prefix) {
@@ -147,7 +195,8 @@ public class Instances {
             instance.name = KiraziumBootstrap.PROFILE_NAME;
             instance.icon = KiraziumBootstrap.PROFILE_ICON;
             instance.versionId = versionId;
-            instance.renderer = "opengles3_ltw";
+            // Renderer follows the global launcher choice unless the user explicitly overrides it.
+            instance.renderer = null;
             instance.selectedRuntime = "Internal-25";
         }, "kirazium");
     }
