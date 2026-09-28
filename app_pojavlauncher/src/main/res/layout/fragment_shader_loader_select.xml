@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.kdt.DefocusableScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_app">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/fragment_padding_medium">
+
+        <ImageButton
+            android:id="@+id/shader_loader_back"
+            android:layout_width="@dimen/_42sdp"
+            android:layout_height="@dimen/_42sdp"
+            android:layout_marginTop="@dimen/padding_large"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@android:string/cancel"
+            android:padding="@dimen/_9sdp"
+            android:src="@drawable/ic_px_arrow_left" />
+
+        <TextView
+            android:id="@+id/shader_loader_title"
+            style="@style/TextAppearance.AppCompat.Title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="@dimen/_4sdp"
+            android:text="@string/shader_loader_title"
+            android:textColor="@color/primary_text" />
+
+        <TextView
+            android:id="@+id/shader_loader_subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/padding_large"
+            android:layout_marginTop="@dimen/_6sdp"
+            android:gravity="center"
+            android:text="@string/shader_loader_subtitle"
+            android:textColor="@color/secondary_text"
+            android:textSize="@dimen/_10ssp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="@dimen/padding_large"
+            android:background="@color/secondary_text"
+            android:alpha="0.25" />
+
+        <com.kdt.mcgui.MineButton
+            android:id="@+id/shader_loader_iris"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/padding_large"
+            android:layout_marginTop="@dimen/padding_large"
+            android:text="@string/shader_loader_iris" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/padding_large"
+            android:layout_marginTop="@dimen/_4sdp"
+            android:text="@string/shader_loader_iris_summary"
+            android:textColor="@color/secondary_text"
+            android:textSize="@dimen/_9ssp" />
+
+        <com.kdt.mcgui.MineButton
+            android:id="@+id/shader_loader_optifine"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/padding_large"
+            android:layout_marginTop="@dimen/padding_extra_extra_large"
+            android:text="@string/shader_loader_optifine" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/padding_large"
+            android:layout_marginTop="@dimen/_4sdp"
+            android:layout_marginBottom="@dimen/padding_extra_extra_large"
+            android:text="@string/shader_loader_optifine_summary"
+            android:textColor="@color/secondary_text"
+            android:textSize="@dimen/_9ssp" />
+
+    </LinearLayout>
+</com.kdt.DefocusableScrollView>
