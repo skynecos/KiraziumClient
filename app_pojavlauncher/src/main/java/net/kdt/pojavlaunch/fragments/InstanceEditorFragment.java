@@ -163,8 +163,12 @@ public class InstanceEditorFragment extends Fragment implements CropperUtils.Cro
         if(jvmIndex == -1) jvmIndex = runtimes.size() - 1;
         mDefaultRuntime.setSelection(jvmIndex);
 
-        // Renderer spinner
-        int rendererIndex = mRenderNames.indexOf(instance.getLaunchRenderer());
+        // Renderer spinner. A null instance renderer means "Global Default"; do not resolve it
+        // to the current global renderer here or simply saving the editor would create an
+        // unintended permanent per-instance override.
+        int rendererIndex = Tools.isValidString(instance.renderer)
+                ? mRenderNames.indexOf(instance.renderer)
+                : -1;
         if(rendererIndex == -1) {
             rendererIndex = mDefaultRenderer.getAdapter().getCount() - 1;
         }
