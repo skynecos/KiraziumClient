@@ -145,7 +145,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/_10sdp"
             android:layout_marginTop="@dimen/_2sdp"
-            android:text="@string/installed_shaders_card_description"
+            android:text="@string/installed_shaders_description"
             android:textColor="@color/secondary_text"
             android:textSize="@dimen/_9ssp"
             app:layout_constraintBottom_toBottomOf="parent"
