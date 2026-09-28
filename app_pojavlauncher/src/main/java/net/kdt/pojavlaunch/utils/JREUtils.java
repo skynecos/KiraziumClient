@@ -10,6 +10,9 @@ import android.util.*;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -100,6 +103,46 @@ public class JREUtils {
         if(ffmpeg == null) return;
         envMap.put("POJAV_FFMPEG_PATH", ffmpeg.resolveAbsolutePath("libffmpeg.so"));
     }
+
+    /**
+     * MobileGlues uses config.json to advertise optional desktop GL extensions.
+     * Kirazium ships MobileGlues in-process, so prepare a conservative default config only when
+     * the user does not already have one. Existing user configuration is never overwritten.
+     */
+    private static void ensureMobileGluesConfig() {
+        File mgDirectory = new File(Tools.DIR_DATA, "MobileGlues");
+        File configFile = new File(mgDirectory, "config.json");
+        if(configFile.isFile()) {
+            Logger.appendToLog("MobileGlues config: preserving existing config.json");
+            return;
+        }
+
+        try {
+            FileUtils.ensureDirectory(mgDirectory);
+            GLInfoUtils.GLInfo glInfo = GLInfoUtils.getGlInfo();
+            boolean computeSupported = glInfo.supportsGles31();
+
+            JSONObject config = new JSONObject();
+            config.put("enableANGLE", 0);
+            config.put("enableNoError", 0);
+            config.put("enableExtComputeShader", computeSupported ? 1 : 0);
+            config.put("enableExtTimerQuery", 1);
+            config.put("enableExtDirectStateAccess", 1);
+            config.put("angleDepthClearFixMode", 0);
+            config.put("customGLVersion", 40);
+            config.put("fsr1Setting", 0);
+            config.put("hideMGEnvLevel", 0);
+            config.put("maxGlslCacheSize", 0);
+
+            Tools.write(configFile, config.toString(2) + "\n");
+            Logger.appendToLog("MobileGlues config: created; GLES=" +
+                    glInfo.glesMajorVersion + "." + glInfo.glesMinorVersion +
+                    ", compute=" + (computeSupported ? "enabled" : "disabled"));
+        } catch (IOException | JSONException exception) {
+            Log.w("MobileGlues", "Could not prepare MobileGlues config", exception);
+            Logger.appendToLog("MobileGlues config: failed to prepare: " + exception);
+        }
+    }
     public static void setEnviroimentForGame(Context context, String renderer) throws Throwable {
         Map<String, String> envMap = new ArrayMap<>();
         envMap.put("LIBGL_MIPMAP", "3");
@@ -138,6 +181,7 @@ public class JREUtils {
         setupFfmpegEnv(context, envMap);
 
         if ("opengles_mobileglues".equals(renderer)) {
+            ensureMobileGluesConfig();
             envMap.put("MG_DIR_PATH", Tools.DIR_DATA + "/MobileGlues");
         }
 
