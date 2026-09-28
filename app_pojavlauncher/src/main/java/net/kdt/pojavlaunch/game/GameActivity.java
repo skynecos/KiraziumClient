@@ -62,6 +62,7 @@ import net.kdt.pojavlaunch.customcontrols.mouse.GyroControl;
 import net.kdt.pojavlaunch.customcontrols.mouse.HotbarView;
 import net.kdt.pojavlaunch.instances.Instance;
 import net.kdt.pojavlaunch.instances.Instances;
+import net.kdt.pojavlaunch.instances.KiraziumSettingsSync;
 import net.kdt.pojavlaunch.lifecycle.ContextExecutor;
 import net.kdt.pojavlaunch.game.platform.Platform;
 import net.kdt.pojavlaunch.game.platform.backend.DummyBackend;
@@ -122,6 +123,10 @@ public class GameActivity extends BaseActivity implements ControlButtonMenuListe
             finish();
             return;
         }
+        // Pull the last player settings into a new/other instance before default options are
+        // extracted, otherwise a freshly-created default options.txt could be mistaken for the
+        // user's newest settings.
+        KiraziumSettingsSync.prepareForLaunch(instance);
         AsyncAssetManager.extractDefaultSettings(this, instance.getGameDirectory());
         MCOptionUtils.load(instance.getGameDirectory().getAbsolutePath());
 
@@ -404,7 +409,13 @@ public class GameActivity extends BaseActivity implements ControlButtonMenuListe
         Logger.appendToLog("Info: Instance renderer override: " +
                 (Tools.isValidString(instance.renderer) ? instance.renderer : "<global>"));
         JREUtils.redirectAndPrintJRELog();
-        GameRunner.launchGame(this, account, instance, versionId, classpath, renderer);
+        try {
+            GameRunner.launchGame(this, account, instance, versionId, classpath, renderer);
+        } finally {
+            // GameRunner blocks until the game exits. Persist the settings written by this
+            // instance so the next version/modpack starts with the same player preferences.
+            KiraziumSettingsSync.captureAfterLaunch(instance);
+        }
         //Note that we actually stall in the above function, even if the game crashes. But let's be safe.
         Tools.runOnUiThread(()-> mServiceBinder.isActive = false);
     }
