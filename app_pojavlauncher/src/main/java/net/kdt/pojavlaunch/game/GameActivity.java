@@ -400,6 +400,9 @@ public class GameActivity extends BaseActivity implements ControlButtonMenuListe
         }
         Logger.appendToLog("--------- Starting game with Launcher Debug!");
         Tools.printLauncherInfo(versionId, instance.getLaunchArgs(), renderer, this);
+        Logger.appendToLog("Info: Global renderer: " + LauncherPreferences.PREF_RENDERER);
+        Logger.appendToLog("Info: Instance renderer override: " +
+                (Tools.isValidString(instance.renderer) ? instance.renderer : "<global>"));
         JREUtils.redirectAndPrintJRELog();
         GameRunner.launchGame(this, account, instance, versionId, classpath, renderer);
         //Note that we actually stall in the above function, even if the game crashes. But let's be safe.
