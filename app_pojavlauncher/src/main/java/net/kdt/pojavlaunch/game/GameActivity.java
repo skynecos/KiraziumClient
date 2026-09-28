@@ -123,8 +123,11 @@ public class GameActivity extends BaseActivity implements ControlButtonMenuListe
             finish();
             return;
         }
-        AsyncAssetManager.extractDefaultSettings(this, instance.getGameDirectory());
+        // Pull the last player settings into a new/other instance before default options are
+        // extracted, otherwise a freshly-created default options.txt could be mistaken for the
+        // user's newest settings.
         KiraziumSettingsSync.prepareForLaunch(instance);
+        AsyncAssetManager.extractDefaultSettings(this, instance.getGameDirectory());
         MCOptionUtils.load(instance.getGameDirectory().getAbsolutePath());
 
         Intent gameServiceIntent = new Intent(this, GameService.class);
