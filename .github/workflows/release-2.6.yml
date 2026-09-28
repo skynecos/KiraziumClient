@@ -73,6 +73,8 @@ jobs:
           grep -F 'LOADER_OPTIFINE = "optifine"' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/fragments/ShaderPackFragment.java >/dev/null
           grep -F 'new File(instance.getGameDirectory(), "shaderpacks")' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/fragments/ShaderPackFragment.java >/dev/null
           grep -F 'downloadVerifiedModrinthFile' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/fragments/ShaderPackFragment.java >/dev/null
+          grep -F '@string/installed_shaders_description' app_pojavlauncher/src/main/res/layout/fragment_shader_packs.xml >/dev/null
+          ! grep -F '@string/installed_shaders_card_description' app_pojavlauncher/src/main/res/layout/fragment_shader_packs.xml >/dev/null
 
       - name: Download verified KiraziumClient 2.1 base
         env:
