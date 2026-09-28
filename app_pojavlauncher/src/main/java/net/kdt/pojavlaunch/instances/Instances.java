@@ -19,8 +19,8 @@ import java.util.UUID;
 public class Instances {
     private static final File sInstancePath = new File(Tools.DIR_GAME_HOME, "instances");
     public static final File SHARED_DATA_DIRECTORY = new File(Tools.DIR_GAME_HOME, "shared_dir");
-    private static final String PREF_KEY_KIRAZIUM_RENDERER_INHERITANCE_V1 =
-            "kiraziumRendererInheritanceV1";
+    private static final String PREF_KEY_RENDERER_INHERITANCE_V2 =
+            "kiraziumRendererInheritanceV2";
     private static final String LEGACY_KIRAZIUM_RENDERER = "opengles3_ltw";
 
     public final List<DisplayInstance> list;
@@ -97,7 +97,7 @@ public class Instances {
             setSelectedInstance(instances.get(0));
             selectionIndex[0] = 0;
         }
-        migrateLegacyKiraziumRendererDefault();
+        migrateLegacyRendererDefaults();
         KiraziumBootstrap.ensureClientFiles(instances);
         return new Instances(Collections.unmodifiableList(instances), selectionIndex[0]);
     }
@@ -111,42 +111,45 @@ public class Instances {
      * That silently overrode the renderer selected in global Video settings. Migrate only the
      * launcher-created Kirazium instance(s), once, so they inherit the global renderer again.
      */
-    private static void migrateLegacyKiraziumRendererDefault() {
+    private static void migrateLegacyRendererDefaults() {
         if (LauncherPreferences.DEFAULT_PREF == null ||
                 LauncherPreferences.DEFAULT_PREF.getBoolean(
-                        PREF_KEY_KIRAZIUM_RENDERER_INHERITANCE_V1, false)) {
+                        PREF_KEY_RENDERER_INHERITANCE_V2, false)) {
             return;
         }
 
         try {
-            boolean migrated = false;
+            int migratedCount = 0;
             for (Instance instance : loadInstances(Instance.class, null)) {
-                boolean launcherCreatedKirazium =
-                        instance.mInstanceRoot != null &&
-                        instance.mInstanceRoot.getName().startsWith("kirazium-") &&
-                        KiraziumBootstrap.PROFILE_NAME.equals(instance.name);
-
-                if (!launcherCreatedKirazium ||
+                if (instance.mInstanceRoot == null ||
                         !LEGACY_KIRAZIUM_RENDERER.equals(instance.renderer)) {
                     continue;
                 }
 
+                String rootName = instance.mInstanceRoot.getName();
+                boolean launcherManagedProfile =
+                        rootName.startsWith("kirazium-") ||
+                        rootName.startsWith("modpack-");
+
+                if (!launcherManagedProfile) continue;
+
                 instance.renderer = null;
                 instance.write();
-                migrated = true;
+                migratedCount++;
             }
 
             LauncherPreferences.DEFAULT_PREF.edit()
-                    .putBoolean(PREF_KEY_KIRAZIUM_RENDERER_INHERITANCE_V1, true)
+                    .putBoolean(PREF_KEY_RENDERER_INHERITANCE_V2, true)
                     .apply();
 
-            if (migrated) {
+            if (migratedCount > 0) {
                 Log.i("Instances",
-                        "Migrated legacy Kirazium LTW override to global renderer inheritance");
+                        "Migrated " + migratedCount +
+                        " legacy LTW instance override(s) to global renderer inheritance");
             }
         } catch (IOException exception) {
             // Do not mark the migration complete so it can be retried on the next launcher start.
-            Log.w("Instances", "Could not migrate legacy Kirazium renderer override", exception);
+            Log.w("Instances", "Could not migrate legacy renderer overrides", exception);
         }
     }
 
