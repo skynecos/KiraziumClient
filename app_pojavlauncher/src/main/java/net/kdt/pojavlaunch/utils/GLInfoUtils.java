@@ -9,39 +9,55 @@ import android.opengl.GLES20;
 import android.opengl.GLES30;
 import android.util.Log;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class GLInfoUtils {
     public static String GLES_VERSION_PREFIX = "OpenGL ES ";
     private static GLInfo info;
 
-    private static int getMajorGLVersion(String versionString) {
+    private static int[] getGLVersion(String versionString) {
+        if(versionString == null) throw new NumberFormatException("GL version is null");
         if(versionString.startsWith(GLES_VERSION_PREFIX)) {
             versionString = versionString.substring(GLES_VERSION_PREFIX.length());
         }
-        int firstDot = versionString.indexOf('.');
-        String majorVersion = versionString.substring(0, firstDot).trim();
-        return Integer.parseInt(majorVersion);
+
+        Matcher matcher = Pattern.compile("(\\d+)\\.(\\d+)").matcher(versionString);
+        if(!matcher.find()) {
+            throw new NumberFormatException("Could not parse GL version: " + versionString);
+        }
+        return new int[] {
+                Integer.parseInt(matcher.group(1)),
+                Integer.parseInt(matcher.group(2))
+        };
     }
 
     private static GLInfo queryInfo(int contextGLVersion, boolean forcedMsaa) {
         String vendor = GLES20.glGetString(GLES20.GL_VENDOR);
         String renderer = GLES20.glGetString(GLES20.GL_RENDERER);
         String versionString = GLES20.glGetString(GLES30.GL_VERSION);
-        int version = 2;
+        int majorVersion = 2;
+        int minorVersion = 0;
         try {
-            version = getMajorGLVersion(versionString);
+            int[] parsedVersion = getGLVersion(versionString);
+            majorVersion = parsedVersion[0];
+            minorVersion = parsedVersion[1];
         }catch (NumberFormatException e) {
-            Log.w("GLInfoUtils","Failed to parse GL version number, falling back to 2", e);
+            Log.w("GLInfoUtils","Failed to parse GL version number, falling back to 2.0", e);
         }
-        // LTW depends on the ability to create a context with a major version of 3,
+        // LTW/MobileGlues depend on the ability to create a context with a major version of 3,
         // and even if the string parse returns 3 while EGL can only create 2,
-        // it's still a noncompilant implementation
-        version = Math.min(version, contextGLVersion);
-        return new GLInfo(vendor, renderer, version, forcedMsaa);
+        // it's still a noncompliant implementation.
+        if(majorVersion > contextGLVersion) {
+            majorVersion = contextGLVersion;
+            minorVersion = 0;
+        }
+        return new GLInfo(vendor, renderer, majorVersion, minorVersion, forcedMsaa);
     }
 
     private static void initDummyInfo() {
         Log.e("GLInfoUtils", "An error happened during info query. Will use dummy info. This should be investigated.");
-        info = new GLInfo("<Unknown>", "<Unknown>", 2, false);
+        info = new GLInfo("<Unknown>", "<Unknown>", 2, 0, false);
     }
 
     private static EGLContext tryCreateContext(EGLDisplay eglDisplay, EGLConfig config, int majorVersion) {
@@ -158,12 +174,20 @@ public class GLInfoUtils {
         public final String vendor;
         public final String renderer;
         public final int glesMajorVersion;
+        public final int glesMinorVersion;
         public final boolean forcedMsaa;
-        protected GLInfo(String vendor, String renderer, int glesMajorVersion, boolean forcedMsaa) {
+        protected GLInfo(String vendor, String renderer, int glesMajorVersion,
+                         int glesMinorVersion, boolean forcedMsaa) {
             this.vendor = vendor;
             this.renderer = renderer;
             this.glesMajorVersion = glesMajorVersion;
+            this.glesMinorVersion = glesMinorVersion;
             this.forcedMsaa = forcedMsaa;
+        }
+
+        public boolean supportsGles31() {
+            return glesMajorVersion > 3 ||
+                    (glesMajorVersion == 3 && glesMinorVersion >= 1);
         }
 
         /**
