@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="control_mode_button">Control Type • %1$s</string>
+    <string name="control_mode_classic_option">Classic — Tap movement buttons</string>
+    <string name="control_mode_kirazium_option">Kirazium — Joystick</string>
+    <string name="control_mode_title">Control Type</string>
+    <string name="control_mode_kirazium_enabled">Kirazium joystick enabled</string>
+    <string name="control_mode_classic_enabled">Classic controls enabled</string>
+    <string name="control_mode_prepare_failed">Could not prepare Kirazium joystick: %1$s</string>
+    <string name="control_layout_empty">Control layout is empty</string>
+    <string name="control_movement_keys_missing">W/A/S/D movement buttons were not found</string>
+
+    <string name="modpack_installing_play_blocked">The modpack is installing. You can play after the installation finishes.</string>
+    <string name="modpack_button_installing">Installing Modpack…</string>
+    <string name="modpack_button_install">Install Modpack</string>
+    <string name="modpack_already_installing">The modpack is already installing.</string>
+    <string name="modpack_installing">Installing modpack…</string>
+    <string name="modpack_install_failed_title">Could not install modpack</string>
+    <string name="modpack_installed_message">Modpack installed: %1$s%2$s</string>
+
+    <string name="update_found_downloading">Kirazium %1$s update found. Downloading…</string>
+    <string name="update_apk_verification_failed">The update APK could not be verified.</string>
+    <string name="update_already_downloading">An update is already downloading.</string>
+    <string name="update_progress_title">Kirazium %1$s</string>
+    <string name="update_progress_message">Downloading and verifying update…</string>
+    <string name="update_download_failed">The update could not be downloaded.</string>
+    <string name="update_unknown_source_permission">Allow “Install unknown apps from this source” for Kirazium Launcher.</string>
+    <string name="update_installer_open_failed">Could not open the Android installer.</string>
+</resources>
