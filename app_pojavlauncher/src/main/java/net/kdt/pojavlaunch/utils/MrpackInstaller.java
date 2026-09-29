@@ -83,8 +83,8 @@ public final class MrpackInstaller {
      */
     public static Result install(Context context, Uri source, File ignoredGameDirectory,
                                  String ignoredCurrentVersionId) throws IOException {
-        if (context == null) throw new IOException("Uygulama bağlamı bulunamadı");
-        if (source == null) throw new IOException("Modpack dosyası seçilmedi");
+        if (context == null) throw new IOException("Application context not found");
+        if (source == null) throw new IOException("No modpack file was selected");
 
         File cachedPack = File.createTempFile("kirazium-modpack-", ".mrpack", context.getCacheDir());
         Instance createdInstance = null;
@@ -94,7 +94,7 @@ public final class MrpackInstaller {
             try (ZipFile zip = new ZipFile(cachedPack)) {
                 ZipEntry indexEntry = zip.getEntry(INDEX_NAME);
                 if (indexEntry == null || indexEntry.isDirectory()) {
-                    throw new IOException("Geçersiz .mrpack: modrinth.index.json bulunamadı");
+                    throw new IOException("Invalid .mrpack: modrinth.index.json not found");
                 }
 
                 JSONObject index = parseJson(readEntry(zip, indexEntry), "modrinth.index.json bozuk");
@@ -134,7 +134,7 @@ public final class MrpackInstaller {
                 }
             }
             if (exception instanceof IOException) throw (IOException) exception;
-            throw new IOException("Modpack profili oluşturulamadı", exception);
+            throw new IOException("Could not create the modpack profile", exception);
         } finally {
             if (cachedPack.exists() && !cachedPack.delete()) cachedPack.deleteOnExit();
         }
@@ -143,7 +143,7 @@ public final class MrpackInstaller {
     private static void copyUriToFile(Context context, Uri source, File destination)
             throws IOException {
         try (InputStream input = context.getContentResolver().openInputStream(source)) {
-            if (input == null) throw new IOException("Seçilen modpack dosyası açılamadı");
+            if (input == null) throw new IOException("Could not open the selected modpack file");
             try (OutputStream output = new BufferedOutputStream(new FileOutputStream(destination))) {
                 copy(input, output);
             }
@@ -153,25 +153,25 @@ public final class MrpackInstaller {
     private static PackMetadata validateAndReadMetadata(JSONObject index) throws IOException {
         int formatVersion = index.optInt("formatVersion", -1);
         if (formatVersion != 1) {
-            throw new IOException("Desteklenmeyen .mrpack formatı: " + formatVersion);
+            throw new IOException("Unsupported .mrpack format: " + formatVersion);
         }
         if (!"minecraft".equalsIgnoreCase(index.optString("game", ""))) {
-            throw new IOException("Bu paket bir Minecraft modpack'i değil");
+            throw new IOException("This package is not a Minecraft modpack");
         }
 
         JSONObject dependencies = index.optJSONObject("dependencies");
         if (dependencies == null) {
-            throw new IOException("Modpack sürüm bilgileri eksik");
+            throw new IOException("Modpack version information is missing");
         }
 
         if (dependencies.has("forge") || dependencies.has("neoforge")
                 || dependencies.has("quilt-loader")) {
-            throw new IOException("Bu modpack'in loader'ı henüz desteklenmiyor. Şimdilik Fabric .mrpack kullanın.");
+            throw new IOException("This modpack loader is not supported yet. Use a Fabric .mrpack for now.");
         }
 
         String minecraft = dependencies.optString("minecraft", "").trim();
         if (minecraft.isEmpty()) {
-            throw new IOException("Modpack Minecraft sürümü belirtmiyor");
+            throw new IOException("The modpack does not specify a Minecraft version");
         }
 
         String fabricLoader = dependencies.optString("fabric-loader", "").trim();
@@ -194,7 +194,7 @@ public final class MrpackInstaller {
         String installed = FabriclikeUtils.FABRIC_UTILS.install(
                 metadata.minecraftVersion, metadata.fabricLoaderVersion);
         if (installed == null || installed.trim().isEmpty()) {
-            throw new IOException("Fabric profili oluşturulamadı");
+            throw new IOException("Could not create the Fabric profile");
         }
         return installed;
     }
@@ -224,7 +224,7 @@ public final class MrpackInstaller {
             }
 
             String path = fileObject.optString("path", "");
-            if (path.isEmpty()) throw new IOException("Modpack içinde boş dosya yolu var");
+            if (path.isEmpty()) throw new IOException("The modpack contains an empty file path");
             File destination = safeDestination(gameDirectory, path);
 
             JSONObject hashes = fileObject.optJSONObject("hashes");
@@ -247,7 +247,7 @@ public final class MrpackInstaller {
 
             JSONArray downloads = fileObject.optJSONArray("downloads");
             if (downloads == null || downloads.length() == 0) {
-                throw new IOException("İndirme adresi olmayan modpack dosyası: " + path);
+                throw new IOException("Modpack file has no download URL: " + path);
             }
 
             File temp = File.createTempFile("kirazium-mrpack-file-", ".tmp", context.getCacheDir());
@@ -262,7 +262,7 @@ public final class MrpackInstaller {
                         if (algorithm != null && !expectedHash.isEmpty()) {
                             String actual = hash(temp, algorithm);
                             if (!expectedHash.equalsIgnoreCase(actual)) {
-                                throw new IOException("Hash doğrulaması başarısız: " + path);
+                                throw new IOException("Hash verification failed: " + path);
                             }
                         }
                         downloaded = true;
@@ -333,7 +333,7 @@ public final class MrpackInstaller {
 
         File staged = new File(destination.getParentFile(), destination.getName() + ".kirazium-part");
         if (staged.exists() && !staged.delete()) {
-            throw new IOException("Geçici dosya temizlenemedi: " + staged.getName());
+            throw new IOException("Could not clean up temporary file: " + staged.getName());
         }
         try (InputStream input = new BufferedInputStream(new FileInputStream(source));
              OutputStream output = new BufferedOutputStream(new FileOutputStream(staged))) {
@@ -342,7 +342,7 @@ public final class MrpackInstaller {
 
         if (destination.exists() && !destination.delete()) {
             if (!staged.delete()) staged.deleteOnExit();
-            throw new IOException("Eski dosya değiştirilemedi: " + destination.getName());
+            throw new IOException("Could not replace old file: " + destination.getName());
         }
         if (!staged.renameTo(destination)) {
             try (InputStream input = new BufferedInputStream(new FileInputStream(staged));
@@ -370,7 +370,7 @@ public final class MrpackInstaller {
             if (existing.getCanonicalPath().equals(destinationCanonical)) continue;
             String existingId = readFabricModId(existing);
             if (incomingId.equals(existingId) && !existing.delete()) {
-                throw new IOException("Eski mod kaldırılamadı: " + existing.getName());
+                throw new IOException("Could not remove old mod: " + existing.getName());
             }
         }
     }
@@ -387,17 +387,17 @@ public final class MrpackInstaller {
     }
 
     private static File safeDestination(File baseDirectory, String relativePath) throws IOException {
-        if (relativePath.indexOf('\0') >= 0) throw new IOException("Geçersiz dosya yolu");
+        if (relativePath.indexOf('\0') >= 0) throw new IOException("Invalid file path");
         String normalized = relativePath.replace('\\', '/');
         while (normalized.startsWith("/")) normalized = normalized.substring(1);
-        if (normalized.isEmpty()) throw new IOException("Geçersiz dosya yolu");
+        if (normalized.isEmpty()) throw new IOException("Invalid file path");
 
         File destination = new File(baseDirectory, normalized);
         String base = baseDirectory.getCanonicalPath();
         String target = destination.getCanonicalPath();
         String prefix = base.endsWith(File.separator) ? base : base + File.separator;
         if (!target.startsWith(prefix)) {
-            throw new IOException("Güvensiz modpack dosya yolu: " + relativePath);
+            throw new IOException("Unsafe modpack file path: " + relativePath);
         }
         return destination;
     }
@@ -438,7 +438,7 @@ public final class MrpackInstaller {
         try {
             int code = connection.getResponseCode();
             if (code < 200 || code >= 300) {
-                throw new IOException("İndirme hatası HTTP " + code);
+                throw new IOException("Download failed with HTTP " + code);
             }
             try (InputStream input = new BufferedInputStream(connection.getInputStream());
                  OutputStream output = new BufferedOutputStream(new FileOutputStream(destination))) {
@@ -454,7 +454,7 @@ public final class MrpackInstaller {
         try {
             digest = MessageDigest.getInstance(algorithm);
         } catch (NoSuchAlgorithmException exception) {
-            throw new IOException("Hash algoritması kullanılamıyor: " + algorithm, exception);
+            throw new IOException("Hash algorithm is unavailable: " + algorithm, exception);
         }
 
         byte[] buffer = new byte[BUFFER_SIZE];
