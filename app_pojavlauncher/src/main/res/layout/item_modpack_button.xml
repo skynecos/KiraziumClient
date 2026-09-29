@@ -4,7 +4,7 @@
     android:id="@+id/modpack_button"
     style="@style/LauncherMenuButton.Framed"
     android:layout_width="0dp"
-    android:layout_height="@dimen/_50sdp"
+    android:layout_height="wrap_content"
     android:drawableStart="@drawable/ic_px_java_run"
     android:gravity="center_vertical"
     android:text="Modpack Yükle"
