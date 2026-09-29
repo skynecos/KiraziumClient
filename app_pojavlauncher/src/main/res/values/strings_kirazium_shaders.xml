@@ -21,11 +21,11 @@
     <string name="shader_pack_download">Download</string>
     <string name="shader_pack_downloading">Downloading…</string>
     <string name="shader_pack_installed">Installed</string>
-    <string name="shader_pack_installed_message">%1$s was downloaded to the selected version's shaderpacks folder.</string>
+    <string name="shader_pack_installed_message">%1$s was downloaded to the selected version\'s shaderpacks folder.</string>
     <string name="shader_pack_already_installed">This shader version is already installed.</string>
     <string name="shader_pack_no_compatible_version">No compatible file was found for the selected Minecraft version and shader platform.</string>
     <string name="shader_pack_download_failed">Could not download the shader.</string>
     <string name="shader_pack_source">Modrinth</string>
     <string name="installed_shaders_menu">Installed Shaders</string>
-    <string name="installed_shaders_description">Open the selected version's shaderpacks folder</string>
+    <string name="installed_shaders_description">Open the selected version\'s shaderpacks folder</string>
 </resources>
