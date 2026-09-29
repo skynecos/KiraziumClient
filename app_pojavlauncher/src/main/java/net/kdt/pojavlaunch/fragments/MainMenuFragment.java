@@ -131,7 +131,7 @@ public class MainMenuFragment extends Fragment {
 
         mPlayButton.setOnClickListener(v -> {
             if (mModpackInstalling) {
-                Toast.makeText(requireContext(), "Modpack yükleniyor. Kurulum tamamlanınca oynayabilirsin.",
+                Toast.makeText(requireContext(), R.string.modpack_installing_play_blocked,
                         Toast.LENGTH_SHORT).show();
                 return;
             }
@@ -218,7 +218,8 @@ public class MainMenuFragment extends Fragment {
     private void refreshControlModeButton() {
         if (mControlModeButton == null) return;
         boolean kirazium = CONTROL_MODE_KIRAZIUM.equals(getSavedControlMode());
-        mControlModeButton.setText("Kontrol Tipi • " + (kirazium ? "Kirazium" : "Classic"));
+        mControlModeButton.setText(getString(R.string.control_mode_button,
+                kirazium ? "Kirazium" : "Classic"));
     }
 
     private String getSavedControlMode() {
@@ -229,13 +230,13 @@ public class MainMenuFragment extends Fragment {
 
     private void showControlModeDialog() {
         final String[] options = new String[]{
-                "Classic — Tıklamalı hareket tuşları",
-                "Kirazium — Joystick"
+                getString(R.string.control_mode_classic_option),
+                getString(R.string.control_mode_kirazium_option)
         };
         int selected = CONTROL_MODE_KIRAZIUM.equals(getSavedControlMode()) ? 1 : 0;
 
         new AlertDialog.Builder(requireContext())
-                .setTitle("Kontrol Tipi")
+                .setTitle(R.string.control_mode_title)
                 .setSingleChoiceItems(options, selected, (dialog, which) -> {
                     boolean success = which == 1
                             ? activateKiraziumControlMode()
@@ -244,8 +245,8 @@ public class MainMenuFragment extends Fragment {
 
                     refreshControlModeButton();
                     Toast.makeText(requireContext(), which == 1
-                                    ? "Kirazium joystick aktif"
-                                    : "Classic kontrol aktif",
+                                    ? R.string.control_mode_kirazium_enabled
+                                    : R.string.control_mode_classic_enabled,
                             Toast.LENGTH_SHORT).show();
                     dialog.dismiss();
                 })
@@ -325,7 +326,7 @@ public class MainMenuFragment extends Fragment {
         } catch (Exception exception) {
             Log.e(CONTROL_TAG, "Could not prepare Kirazium joystick controls", exception);
             Toast.makeText(requireContext(),
-                    "Kirazium joystick hazırlanamadı: " + readableError(exception),
+                    getString(R.string.control_mode_prepare_failed, readableError(exception)),
                     Toast.LENGTH_LONG).show();
             return false;
         }
@@ -334,7 +335,7 @@ public class MainMenuFragment extends Fragment {
     private void replaceWalkingControlsWithJoystick(CustomControls controls, Point screen)
             throws IOException {
         if (controls == null || controls.mControlDataList == null) {
-            throw new IOException("Kontrol düzeni boş");
+            throw new IOException(getString(R.string.control_layout_empty));
         }
 
         ControlData forward = null;
@@ -351,7 +352,7 @@ public class MainMenuFragment extends Fragment {
         }
 
         if (forward == null || left == null || back == null || right == null) {
-            throw new IOException("W/A/S/D hareket tuşları bulunamadı");
+            throw new IOException(getString(R.string.control_movement_keys_missing));
         }
 
         ControlData[] movement = new ControlData[]{forward, left, back, right};
@@ -524,7 +525,9 @@ public class MainMenuFragment extends Fragment {
         refreshControlModeButton();
         if (mModpackButton != null) {
             mModpackButton.setEnabled(!mModpackInstalling);
-            mModpackButton.setText(mModpackInstalling ? "Modpack Yükleniyor…" : "Modpack Yükle");
+            mModpackButton.setText(mModpackInstalling
+                    ? R.string.modpack_button_installing
+                    : R.string.modpack_button_install);
         }
     }
 
@@ -536,7 +539,7 @@ public class MainMenuFragment extends Fragment {
 
     private void runModpackInstaller() {
         if (mModpackInstalling) {
-            Toast.makeText(requireContext(), "Modpack zaten yükleniyor.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(requireContext(), R.string.modpack_already_installing, Toast.LENGTH_SHORT).show();
             return;
         }
         if (ProgressKeeper.getTaskCount() != 0) {
@@ -559,9 +562,9 @@ public class MainMenuFragment extends Fragment {
         mModpackInstalling = true;
         if (mModpackButton != null) {
             mModpackButton.setEnabled(false);
-            mModpackButton.setText("Modpack Yükleniyor…");
+            mModpackButton.setText(R.string.modpack_button_installing);
         }
-        Toast.makeText(requireContext(), "Modpack yükleniyor…", Toast.LENGTH_SHORT).show();
+        Toast.makeText(requireContext(), R.string.modpack_installing, Toast.LENGTH_SHORT).show();
 
         PojavApplication.sExecutorService.execute(() -> {
             try {
@@ -582,12 +585,12 @@ public class MainMenuFragment extends Fragment {
 
         if (mModpackButton != null) {
             mModpackButton.setEnabled(true);
-            mModpackButton.setText("Modpack Yükle");
+            mModpackButton.setText(R.string.modpack_button_install);
         }
 
         if (error != null) {
             new AlertDialog.Builder(requireContext())
-                    .setTitle("Modpack yüklenemedi")
+                    .setTitle(R.string.modpack_install_failed_title)
                     .setMessage(readableError(error))
                     .setPositiveButton(android.R.string.ok, null)
                     .show();
@@ -598,7 +601,7 @@ public class MainMenuFragment extends Fragment {
             String version = result.versionId == null || result.versionId.isEmpty()
                     ? "" : " • " + result.versionId;
             Toast.makeText(requireContext(),
-                    "Modpack yüklendi: " + result.name + version,
+                    getString(R.string.modpack_installed_message, result.name, version),
                     Toast.LENGTH_LONG).show();
         }
     }
