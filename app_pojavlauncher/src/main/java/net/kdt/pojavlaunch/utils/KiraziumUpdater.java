@@ -16,6 +16,7 @@ import android.widget.Toast;
 import androidx.core.content.FileProvider;
 
 import net.kdt.pojavlaunch.PojavApplication;
+import net.kdt.pojavlaunch.R;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
