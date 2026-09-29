@@ -1,0 +1,70 @@
+name: KiraziumClient Source Build Check
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/source-build-check.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  LAUNCHER_NDK_VERSION: "29.0.14206865"
+
+jobs:
+  build-source:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout KiraziumClient
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          submodules: recursive
+
+      - name: Install pinned Android build tools
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$SDK_ROOT"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -perm -u+x | head -n 1 || true)"
+          fi
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "ndk;${LAUNCHER_NDK_VERSION}" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Get pinned LTW renderer
+        uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
+        with:
+          repo: MojoLauncher/LTW
+          workflow: android.yml
+          workflow_conclusion: success
+          commit: 3aca75d9f3f05afd0b02a3d8f686084d968fa200
+          name: output-aar
+          path: app_pojavlauncher/libs
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Compile full release
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          unset ANDROID_NDK_ROOT
+          ./gradlew :app_pojavlauncher:assembleFullRelease --stacktrace
+
+      - name: Verify APK output exists
+        run: |
+          set -euo pipefail
+          APK="$(find app_pojavlauncher/build/outputs/apk/full/release -type f -name '*.apk' | head -n 1)"
+          test -s "$APK"
+          echo "Source build succeeded: $APK"
