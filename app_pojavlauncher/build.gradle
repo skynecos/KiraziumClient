@@ -58,8 +58,8 @@ android {
         applicationId "com.kirazium.launcher"
         minSdkVersion 21
         targetSdkVersion 36
-        versionCode getDateSeconds()
-        versionName "2.0"
+        versionCode 270000
+        versionName "2.7"
         multiDexEnabled false //important
         resValue 'string', 'curseforge_api_key', getCFApiKey()
         resValue 'string', 'group_id', 'git.artdeell'
