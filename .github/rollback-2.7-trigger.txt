@@ -1,1 +1,0 @@
-remove verified broken release id 399571677 and restore 2.6 as stable
