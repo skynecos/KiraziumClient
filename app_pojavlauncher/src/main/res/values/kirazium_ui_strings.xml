@@ -26,4 +26,12 @@
     <string name="update_download_failed">The update could not be downloaded.</string>
     <string name="update_unknown_source_permission">Allow “Install unknown apps from this source” for Kirazium Launcher.</string>
     <string name="update_installer_open_failed">Could not open the Android installer.</string>
+
+    <string name="control_mode_button_default">Control Type • Classic</string>
+    <string name="import_control_file_name_label">File name:</string>
+    <string name="import_control_file_name_hint">File name</string>
+    <string name="java_gui_keyboard">Keyboard</string>
+    <string name="java_gui_copy">Copy</string>
+    <string name="java_gui_paste">Paste</string>
+    <string name="customctrl_button_name_hint">Button Name</string>
 </resources>
