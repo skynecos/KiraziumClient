@@ -34,4 +34,5 @@
     <string name="java_gui_copy">Copy</string>
     <string name="java_gui_paste">Paste</string>
     <string name="customctrl_button_name_hint">Button Name</string>
+    <string name="file_picker_missing_path">This folder (or file) doesn\'t exist.</string>
 </resources>
