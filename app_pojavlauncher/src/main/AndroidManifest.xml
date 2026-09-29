@@ -35,6 +35,7 @@
         android:icon="@drawable/ic_kirazium_launcher"
         android:isGame="true"
         android:label="@string/app_short_name"
+        android:localeConfig="@xml/locales_config"
         android:process=":launcher"
         android:resizeableActivity="true"
         android:roundIcon="@drawable/ic_kirazium_launcher"
