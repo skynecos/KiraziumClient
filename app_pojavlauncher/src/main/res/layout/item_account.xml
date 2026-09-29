@@ -6,6 +6,16 @@
     android:layout_width="match_parent"
     android:orientation="horizontal">
 
+    <ImageView
+        android:id="@+id/account_head"
+        android:layout_width="@dimen/_30sdp"
+        android:layout_height="@dimen/_30sdp"
+        android:layout_gravity="center_vertical"
+        android:layout_marginStart="@dimen/_8sdp"
+        android:contentDescription="@null"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_default_player_head" />
+
     <fr.spse.extended_view.ExtendedTextView
         android:id="@+id/account_item"
         android:layout_width="0dp"
@@ -15,14 +25,10 @@
         android:textSize="@dimen/_16ssp"
         android:gravity="center_vertical"
         android:drawablePadding="@dimen/_6sdp"
-        android:paddingStart="@dimen/_8sdp"
-        app:drawableStartSize="@dimen/_30sdp"
+        android:paddingStart="@dimen/_6sdp"
         app:drawableEndSize="@dimen/_30sdp"
 
         tools:text="HELLO THERE"
-        tools:drawableStart="@mipmap/ic_launcher"
-
-
         tools:ignore="RtlSymmetry" />
 
     <!-- Fun fact, if I put an Image button, the spinner fails to put an onclick listener on the extended view -->

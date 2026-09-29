@@ -2,7 +2,7 @@
 <com.kdt.mcgui.LauncherMenuButton
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/control_mode_button"
-    style="@style/LauncherMenuButton.Universal"
+    style="@style/LauncherMenuButton.Framed"
     android:layout_width="0dp"
     android:layout_height="wrap_content"
     android:drawableStart="@drawable/ic_px_gamepad"

@@ -23,7 +23,7 @@ public enum AuthType {
             null // Do not fetch launcher avatars over the legacy cleartext skin endpoint.
     ),
     @SerializedName("local")
-    LOCAL(null, 0, null, null);
+    LOCAL(null, 0, null, "https://mineskin.eu/skin/%s");
 
     private final BackgroundLogin.Creator mCreator;
     public final int iconResource;

@@ -87,67 +87,6 @@
 				app:layout_constraintEnd_toEndOf="parent"/>
 
 			<androidx.constraintlayout.widget.ConstraintLayout
-				android:id="@+id/low_graphics_card"
-				android:layout_width="match_parent"
-				android:layout_height="@dimen/_58sdp"
-				android:layout_marginHorizontal="@dimen/_8sdp"
-				android:layout_marginVertical="@dimen/_4sdp"
-				android:background="@drawable/kirazium_low_graphics_card"
-				android:clickable="true"
-				android:focusable="true"
-				android:paddingHorizontal="@dimen/_12sdp"
-				app:layout_constraintTop_toBottomOf="@id/kirazium_subtitle">
-
-				<ImageView
-					android:id="@+id/low_graphics_icon"
-					android:layout_width="@dimen/_28sdp"
-					android:layout_height="@dimen/_28sdp"
-					android:contentDescription="@null"
-					android:src="@drawable/ic_px_image_renderer"
-					app:layout_constraintBottom_toBottomOf="parent"
-					app:layout_constraintStart_toStartOf="parent"
-					app:layout_constraintTop_toTopOf="parent" />
-
-				<TextView
-					android:id="@+id/low_graphics_title"
-					android:layout_width="0dp"
-					android:layout_height="wrap_content"
-					android:layout_marginStart="@dimen/_10sdp"
-					android:fontFamily="@font/noto_sans_bold"
-					android:text="@string/low_graphics_mode_title"
-					android:textColor="@color/primary_text"
-					android:textSize="@dimen/_12ssp"
-					app:layout_constraintBottom_toTopOf="@id/low_graphics_summary"
-					app:layout_constraintEnd_toStartOf="@id/low_graphics_switch"
-					app:layout_constraintStart_toEndOf="@id/low_graphics_icon"
-					app:layout_constraintTop_toTopOf="parent"
-					app:layout_constraintVertical_chainStyle="packed" />
-
-				<TextView
-					android:id="@+id/low_graphics_summary"
-					android:layout_width="0dp"
-					android:layout_height="wrap_content"
-					android:ellipsize="end"
-					android:maxLines="1"
-					android:text="@string/low_graphics_mode_summary"
-					android:textColor="@color/secondary_text"
-					android:textSize="@dimen/_9ssp"
-					app:layout_constraintBottom_toBottomOf="parent"
-					app:layout_constraintEnd_toEndOf="@id/low_graphics_title"
-					app:layout_constraintStart_toStartOf="@id/low_graphics_title"
-					app:layout_constraintTop_toBottomOf="@id/low_graphics_title" />
-
-				<androidx.appcompat.widget.SwitchCompat
-					android:id="@+id/low_graphics_switch"
-					android:layout_width="wrap_content"
-					android:layout_height="wrap_content"
-					android:contentDescription="@string/low_graphics_mode_title"
-					app:layout_constraintBottom_toBottomOf="parent"
-					app:layout_constraintEnd_toEndOf="parent"
-					app:layout_constraintTop_toTopOf="parent" />
-			</androidx.constraintlayout.widget.ConstraintLayout>
-
-			<androidx.constraintlayout.widget.ConstraintLayout
 				android:id="@+id/ram_card"
 				android:layout_width="match_parent"
 				android:layout_height="@dimen/_82sdp"
@@ -155,7 +94,7 @@
 				android:layout_marginVertical="@dimen/_4sdp"
 				android:background="@drawable/kirazium_low_graphics_card"
 				android:paddingHorizontal="@dimen/_12sdp"
-				app:layout_constraintTop_toBottomOf="@id/low_graphics_card">
+				app:layout_constraintTop_toBottomOf="@id/kirazium_subtitle">
 
 				<ImageView
 					android:id="@+id/ram_icon"
@@ -223,7 +162,7 @@
 
 			<com.kdt.mcgui.LauncherMenuButton
 				android:id="@+id/texture_packs_button"
-				style="@style/LauncherMenuButton.Universal"
+				style="@style/LauncherMenuButton.Framed"
 				android:layout_width="match_parent"
 				android:drawableStart="@drawable/ic_px_image"
 				android:text="@string/texture_packs_menu"
@@ -231,7 +170,7 @@
 
 			<com.kdt.mcgui.LauncherMenuButton
 				android:id="@+id/shader_packs_button"
-				style="@style/LauncherMenuButton.Universal"
+				style="@style/LauncherMenuButton.Framed"
 				android:layout_width="match_parent"
 				android:drawableStart="@drawable/ic_px_image"
 				android:text="@string/shader_packs_menu"
@@ -239,7 +178,7 @@
 
 			<com.kdt.mcgui.LauncherMenuButton
 				android:id="@+id/mods_button"
-				style="@style/LauncherMenuButton.Universal"
+				style="@style/LauncherMenuButton.Framed"
 				android:layout_width="match_parent"
 				android:drawableStart="@drawable/ic_px_java"
 				android:text="@string/mods_menu"
@@ -247,7 +186,7 @@
 
 			<com.kdt.mcgui.LauncherMenuButton
 				android:id="@+id/custom_control_button"
-				style="@style/LauncherMenuButton.Universal"
+				style="@style/LauncherMenuButton.Framed"
 				android:layout_width="match_parent"
 				android:drawableStart="@drawable/ic_px_gamepad"
 				android:text="@string/mcl_option_customcontrol"
@@ -255,7 +194,7 @@
 
 			<com.kdt.mcgui.LauncherMenuButton
 				android:id="@+id/install_jar_button"
-				style="@style/LauncherMenuButton.Universal"
+				style="@style/LauncherMenuButton.Framed"
 				android:layout_width="match_parent"
 				android:drawableStart="@drawable/ic_px_java_run"
 				android:text="@string/main_install_jar_file"
@@ -263,7 +202,7 @@
 
 			<com.kdt.mcgui.LauncherMenuButton
 				android:id="@+id/share_logs_button"
-				style="@style/LauncherMenuButton.Universal"
+				style="@style/LauncherMenuButton.Framed"
 				android:layout_width="match_parent"
 				android:drawableStart="@drawable/ic_px_sharelog"
 				android:text="@string/main_share_logs"
@@ -271,7 +210,7 @@
 
 			<com.kdt.mcgui.LauncherMenuButton
 				android:id="@+id/open_files_button"
-				style="@style/LauncherMenuButton.Universal"
+				style="@style/LauncherMenuButton.Framed"
 				android:layout_width="match_parent"
 				android:drawableStart="@drawable/ic_px_folder"
 				android:text="@string/mcl_button_open_directory"

@@ -42,6 +42,7 @@ import net.kdt.pojavlaunch.progresskeeper.ProgressKeeper;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Objects;
 
 import fr.spse.extended_view.ExtendedTextView;
@@ -274,7 +275,8 @@ public class AccountSpinner extends AppCompatSpinner implements LoginListener, A
     }
 
     private class Adapter extends ArrayAdapter<Account> {
-        private final HashMap<Integer, BitmapDrawable> mSkinHeadCache = new HashMap<>();
+        private final HashMap<String, BitmapDrawable> mSkinHeadCache = new HashMap<>();
+        private final HashSet<String> mSkinHeadRequests = new HashSet<>();
         private final LayoutInflater mInflater;
 
 
@@ -307,13 +309,15 @@ public class AccountSpinner extends AppCompatSpinner implements LoginListener, A
             Resources.Theme theme = getContext().getTheme();
 
             ExtendedTextView textview = view.findViewById(R.id.account_item);
+            ImageView headView = view.findViewById(R.id.account_head);
             ImageView deleteButton = view.findViewById(R.id.delete_account_button);
 
             if(position == 0) {
                 // "Add account" button
                 Drawable plusDrawable = ResourcesCompat.getDrawable(resources, R.drawable.ic_add, theme);
-                textview.setCompoundDrawables(plusDrawable, null, null, null);
+                textview.setCompoundDrawablesRelative(plusDrawable, null, null, null);
                 textview.setText(R.string.main_add_account);
+                headView.setVisibility(View.GONE);
                 deleteButton.setVisibility(View.GONE);
                 // Only activate the listener behaviour when in drop-down mode
                 // or when there's no accounts
@@ -330,6 +334,7 @@ public class AccountSpinner extends AppCompatSpinner implements LoginListener, A
 
 
             Account account = Objects.requireNonNull(getItem(position));
+            headView.setVisibility(View.VISIBLE);
 
             int authTypeResource = account.authType.iconResource;
 
@@ -338,16 +343,42 @@ public class AccountSpinner extends AppCompatSpinner implements LoginListener, A
                 authType = ResourcesCompat.getDrawable(resources, authTypeResource, theme);
             }
 
-            int headCacheHash = System.identityHashCode(account);
-            BitmapDrawable accountHead = mSkinHeadCache.get(headCacheHash);
-            if (accountHead == null){
+            textview.setText(account.username);
+            textview.setCompoundDrawablesRelative(null, null, authType, null);
+
+            String headKey = account.profileId + "|" + account.authType + "|" + account.username;
+            BitmapDrawable accountHead = mSkinHeadCache.get(headKey);
+            if (accountHead == null) {
                 Bitmap accountSkinFace = account.getSkinFace();
-                accountHead = new BitmapDrawable(resources, accountSkinFace);
-                mSkinHeadCache.put(headCacheHash, accountHead);
+                if (accountSkinFace != null) {
+                    accountHead = new BitmapDrawable(resources, accountSkinFace);
+                    mSkinHeadCache.put(headKey, accountHead);
+                }
             }
 
-            textview.setText(account.username);
-            textview.setCompoundDrawablesRelative(accountHead, null, authType, null);
+            if (accountHead != null) {
+                headView.setImageDrawable(accountHead);
+            } else {
+                headView.setImageResource(R.drawable.ic_default_player_head);
+                requestSkinHead(account, headKey);
+            }
+        }
+
+        private void requestSkinHead(Account account, String headKey) {
+            if (account.authType == null || account.authType.skinUrl == null
+                    || !mSkinHeadRequests.add(headKey)) return;
+
+            PojavApplication.sExecutorService.execute(() -> {
+                account.updateSkinFace();
+                Bitmap skinFace = account.getSkinFace();
+                Tools.runOnUiThread(() -> {
+                    if (skinFace != null) {
+                        mSkinHeadRequests.remove(headKey);
+                        mSkinHeadCache.put(headKey, new BitmapDrawable(getResources(), skinFace));
+                        notifyDataSetChanged();
+                    }
+                });
+            });
         }
 
         private void showDeleteDialog(Context context, int position) {

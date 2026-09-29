@@ -147,7 +147,6 @@ public class Account {
     }
 
     public Bitmap getSkinFace(){
-        if(isLocal()) return null;
         File skinFaceFile = getSkinFaceFile();
         if(!skinFaceFile.exists()) return null;
         if(mFaceCache == null) {
@@ -157,6 +156,10 @@ public class Account {
     }
 
     private File getSkinFaceFile() {
-        return new File(Tools.DIR_CACHE,  "skin-face-" + profileId +"-"+authType.name() + ".webp");
+        String type = authType == null ? AuthType.LOCAL.name() : authType.name();
+        String identity = authType == AuthType.MICROSOFT && profileId != null
+                ? profileId
+                : Integer.toHexString((username == null ? "" : username.toLowerCase(Locale.ROOT)).hashCode());
+        return new File(Tools.DIR_CACHE, "skin-face-" + identity + "-" + type + ".webp");
     }
 }
