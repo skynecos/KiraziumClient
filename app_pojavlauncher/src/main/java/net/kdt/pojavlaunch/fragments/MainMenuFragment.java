@@ -591,7 +591,7 @@ public class MainMenuFragment extends Fragment {
         if (error != null) {
             new AlertDialog.Builder(requireContext())
                     .setTitle(R.string.modpack_install_failed_title)
-                    .setMessage(readableError(error))
+                    .setMessage(R.string.modpack_install_failed_message)
                     .setPositiveButton(android.R.string.ok, null)
                     .show();
             return;
