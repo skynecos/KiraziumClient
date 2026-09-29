@@ -1,1 +1,1 @@
-trigger after generated R namespace fix
+trigger after removing unsupported locale drawables
