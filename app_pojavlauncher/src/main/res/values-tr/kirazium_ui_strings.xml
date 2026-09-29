@@ -26,4 +26,12 @@
     <string name="update_download_failed">Güncelleme indirilemedi.</string>
     <string name="update_unknown_source_permission">Kirazium Launcher için “Bu kaynaktan uygulama yükle” iznini aç.</string>
     <string name="update_installer_open_failed">Android yükleyicisi açılamadı.</string>
+
+    <string name="control_mode_button_default">Kontrol Tipi • Classic</string>
+    <string name="import_control_file_name_label">Dosya adı:</string>
+    <string name="import_control_file_name_hint">Dosya adı</string>
+    <string name="java_gui_keyboard">Klavye</string>
+    <string name="java_gui_copy">Kopyala</string>
+    <string name="java_gui_paste">Yapıştır</string>
+    <string name="customctrl_button_name_hint">Düğme Adı</string>
 </resources>
