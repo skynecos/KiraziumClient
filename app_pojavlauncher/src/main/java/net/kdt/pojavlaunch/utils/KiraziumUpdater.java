@@ -87,7 +87,7 @@ public final class KiraziumUpdater {
                     if (activity.isFinishing() ||
                             (Build.VERSION.SDK_INT >= 17 && activity.isDestroyed())) return;
                     Toast.makeText(activity,
-                            "Kirazium " + availableVersion + " güncellemesi bulundu. İndiriliyor...",
+                            activity.getString(R.string.update_found_downloading, availableVersion),
                             Toast.LENGTH_LONG).show();
                     downloadUpdate(activity, availableVersion, availableAssets);
                 });
@@ -117,26 +117,26 @@ public final class KiraziumUpdater {
 
         try {
             if (apk.length() <= 0L || apk.length() > MAX_APK_BYTES) {
-                throw new SecurityException("Güncelleme APK boyutu geçersiz.");
+                throw new SecurityException("Invalid update APK size.");
             }
             verifyDownloadedApk(activity, apk);
             launchPackageInstaller(activity, apk);
         } catch (Exception error) {
             prefs(activity).edit().remove(KEY_PENDING_APK).apply();
             apk.delete();
-            Toast.makeText(activity, "Güncelleme APK'sı doğrulanamadı.", Toast.LENGTH_LONG).show();
+            Toast.makeText(activity, R.string.update_apk_verification_failed, Toast.LENGTH_LONG).show();
         }
     }
 
     private static void downloadUpdate(Activity activity, String version, ReleaseAssets assets) {
         if (!DOWNLOAD_RUNNING.compareAndSet(false, true)) {
-            Toast.makeText(activity, "Güncelleme zaten indiriliyor.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(activity, R.string.update_already_downloading, Toast.LENGTH_SHORT).show();
             return;
         }
 
         ProgressDialog progress = new ProgressDialog(activity);
-        progress.setTitle("Kirazium " + version);
-        progress.setMessage("Güncelleme indiriliyor ve doğrulanıyor...");
+        progress.setTitle(activity.getString(R.string.update_progress_title, version));
+        progress.setMessage(activity.getString(R.string.update_progress_message));
         progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
         progress.setIndeterminate(true);
         progress.setCancelable(false);
@@ -148,21 +148,21 @@ public final class KiraziumUpdater {
             HttpURLConnection connection = null;
             try {
                 if (assets.expectedSize <= 0L || assets.expectedSize > MAX_APK_BYTES) {
-                    throw new SecurityException("Release APK boyutu güvenlik sınırının dışında.");
+                    throw new SecurityException("Release APK size is outside the security limit.");
                 }
 
                 String expectedSha256 = downloadExpectedSha256(assets.checksumUrl);
 
                 File downloadDir = activity.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
-                if (downloadDir == null) throw new IllegalStateException("İndirme klasörü açılamadı.");
+                if (downloadDir == null) throw new IllegalStateException("Could not open the download directory.");
                 if (!downloadDir.isDirectory() && !downloadDir.mkdirs()) {
-                    throw new IllegalStateException("İndirme klasörü oluşturulamadı.");
+                    throw new IllegalStateException("Could not create the download directory.");
                 }
 
                 finalFile = new File(downloadDir, "KiraziumClient-" + version + ".apk");
                 tempFile = new File(downloadDir, "KiraziumClient-" + version + ".apk.part");
                 if (tempFile.isFile() && !tempFile.delete()) {
-                    throw new IllegalStateException("Eski geçici güncelleme dosyası silinemedi.");
+                    throw new IllegalStateException("Could not delete the old temporary update file.");
                 }
 
                 connection = openConnection(assets.apkUrl);
@@ -172,10 +172,10 @@ public final class KiraziumUpdater {
 
                 long contentLength = getContentLength(connection);
                 if (contentLength > MAX_APK_BYTES) {
-                    throw new SecurityException("Sunucunun bildirdiği APK boyutu çok büyük.");
+                    throw new SecurityException("The APK size reported by the server is too large.");
                 }
                 if (contentLength > 0L && contentLength != assets.expectedSize) {
-                    throw new SecurityException("Release APK boyutu GitHub metadatasıyla eşleşmiyor.");
+                    throw new SecurityException("Release APK size does not match GitHub metadata.");
                 }
 
                 long total = assets.expectedSize;
@@ -191,7 +191,7 @@ public final class KiraziumUpdater {
                     while ((read = input.read(buffer)) != -1) {
                         downloaded += read;
                         if (downloaded > MAX_APK_BYTES || downloaded > assets.expectedSize) {
-                            throw new SecurityException("APK beklenenden büyük geldi.");
+                            throw new SecurityException("The APK is larger than expected.");
                         }
 
                         digest.update(buffer, 0, read);
@@ -207,23 +207,23 @@ public final class KiraziumUpdater {
                     fileOutput.flush();
 
                     if (downloaded != assets.expectedSize) {
-                        throw new SecurityException("APK eksik veya fazla byte içeriyor.");
+                        throw new SecurityException("The APK contains fewer or more bytes than expected.");
                     }
                 }
 
                 byte[] expectedDigest = decodeSha256(expectedSha256);
                 byte[] actualDigest = digest.digest();
                 if (!MessageDigest.isEqual(expectedDigest, actualDigest)) {
-                    throw new SecurityException("APK SHA-256 doğrulaması başarısız.");
+                    throw new SecurityException("APK SHA-256 verification failed.");
                 }
 
                 verifyDownloadedApk(activity, tempFile);
 
                 if (finalFile.isFile() && !finalFile.delete()) {
-                    throw new IllegalStateException("Eski güncelleme dosyası silinemedi.");
+                    throw new IllegalStateException("Could not delete the old update file.");
                 }
                 if (!tempFile.renameTo(finalFile)) {
-                    throw new IllegalStateException("Doğrulanmış APK son dosyaya taşınamadı.");
+                    throw new IllegalStateException("Could not move the verified APK to the final file.");
                 }
 
                 prefs(activity).edit().putString(KEY_PENDING_APK, finalFile.getAbsolutePath()).apply();
@@ -234,10 +234,9 @@ public final class KiraziumUpdater {
                 });
             } catch (Exception error) {
                 if (tempFile != null && tempFile.isFile()) tempFile.delete();
-                String message = error.getMessage() == null ? "Bilinmeyen hata" : error.getMessage();
                 activity.runOnUiThread(() -> {
                     if (progress.isShowing()) progress.dismiss();
-                    Toast.makeText(activity, "Güncelleme indirilemedi: " + message, Toast.LENGTH_LONG).show();
+                    Toast.makeText(activity, R.string.update_download_failed, Toast.LENGTH_LONG).show();
                 });
             } finally {
                 if (connection != null) connection.disconnect();
@@ -251,14 +250,14 @@ public final class KiraziumUpdater {
         try {
             connection = openConnection(checksumUrl);
             if (connection.getResponseCode() != HttpURLConnection.HTTP_OK) {
-                throw new SecurityException("SHA-256 dosyası indirilemedi.");
+                throw new SecurityException("Could not download the SHA-256 file.");
             }
             String checksumText = readStream(connection.getInputStream(), MAX_CHECKSUM_BYTES).trim();
-            if (checksumText.isEmpty()) throw new SecurityException("SHA-256 dosyası boş.");
+            if (checksumText.isEmpty()) throw new SecurityException("The SHA-256 file is empty.");
 
             String firstToken = checksumText.split("\\s+", 2)[0].trim();
             if (!firstToken.matches("[0-9a-fA-F]{64}")) {
-                throw new SecurityException("SHA-256 formatı geçersiz.");
+                throw new SecurityException("Invalid SHA-256 format.");
             }
             return firstToken.toLowerCase(Locale.ROOT);
         } finally {
@@ -277,23 +276,23 @@ public final class KiraziumUpdater {
 
         if (archive == null || archive.packageName == null ||
                 !activity.getPackageName().equals(archive.packageName)) {
-            throw new SecurityException("APK paket kimliği Kirazium Launcher ile eşleşmiyor.");
+            throw new SecurityException("APK package ID does not match Kirazium Launcher.");
         }
 
         long archiveVersion = getVersionCode(archive);
         long installedVersion = getVersionCode(installed);
         if (archiveVersion <= installedVersion) {
-            throw new SecurityException("İndirilen APK mevcut sürümden daha yeni değil.");
+            throw new SecurityException("The downloaded APK is not newer than the installed version.");
         }
 
         Signature[] archiveSignatures = getSignatures(archive);
         if (!hasPinnedProductionCertificate(archiveSignatures)) {
-            throw new SecurityException("APK Kirazium production sertifikasıyla imzalanmamış.");
+            throw new SecurityException("APK is not signed with the Kirazium production certificate.");
         }
 
         Signature[] installedSignatures = getSignatures(installed);
         if (!hasMatchingSignature(archiveSignatures, installedSignatures)) {
-            throw new SecurityException("APK imzası mevcut Kirazium Launcher imzasıyla eşleşmiyor.");
+            throw new SecurityException("APK signature does not match the installed Kirazium Launcher signature.");
         }
     }
 
@@ -339,7 +338,7 @@ public final class KiraziumUpdater {
                 !activity.getPackageManager().canRequestPackageInstalls()) {
             prefs(activity).edit().putString(KEY_PENDING_APK, apk.getAbsolutePath()).apply();
             Toast.makeText(activity,
-                    "Kirazium Launcher için 'Bu kaynaktan uygulama yükle' iznini aç.",
+                    R.string.update_unknown_source_permission,
                     Toast.LENGTH_LONG).show();
             try {
                 activity.startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
@@ -362,7 +361,7 @@ public final class KiraziumUpdater {
             prefs(activity).edit().remove(KEY_PENDING_APK).apply();
             activity.startActivity(installIntent);
         } catch (Exception error) {
-            Toast.makeText(activity, "Android yükleyicisi açılamadı.", Toast.LENGTH_LONG).show();
+            Toast.makeText(activity, R.string.update_installer_open_failed, Toast.LENGTH_LONG).show();
         }
     }
 
@@ -384,19 +383,19 @@ public final class KiraziumUpdater {
             String location = connection.getHeaderField("Location");
             connection.disconnect();
             if (location == null || location.trim().isEmpty()) {
-                throw new SecurityException("Boş HTTPS yönlendirmesi engellendi.");
+                throw new SecurityException("Blocked an empty HTTPS redirect.");
             }
             if (redirectCount == MAX_REDIRECTS) {
-                throw new SecurityException("Çok fazla HTTPS yönlendirmesi engellendi.");
+                throw new SecurityException("Blocked too many HTTPS redirects.");
             }
             current = new URL(current, location);
         }
-        throw new SecurityException("Güncelleme bağlantısı güvenli biçimde açılamadı.");
+        throw new SecurityException("Could not open the update URL securely.");
     }
 
     private static void validateSecureUrl(URL url) {
         if (!"https".equalsIgnoreCase(url.getProtocol())) {
-            throw new SecurityException("HTTPS olmayan güncelleme bağlantısı engellendi.");
+            throw new SecurityException("Blocked a non-HTTPS update URL.");
         }
 
         String host = url.getHost() == null ? "" : url.getHost().toLowerCase(Locale.ROOT);
@@ -405,7 +404,7 @@ public final class KiraziumUpdater {
                 || "release-assets.githubusercontent.com".equals(host)
                 || "objects.githubusercontent.com".equals(host);
         if (!allowed) {
-            throw new SecurityException("Beklenmeyen güncelleme sunucusu engellendi: " + host);
+            throw new SecurityException("Blocked an unexpected update host: " + host);
         }
     }
 
@@ -425,7 +424,7 @@ public final class KiraziumUpdater {
             while ((read = stream.read(buffer)) != -1) {
                 total += read;
                 if (total > maxBytes) {
-                    throw new SecurityException("Sunucu yanıtı güvenlik sınırını aştı.");
+                    throw new SecurityException("Server response exceeded the security limit.");
                 }
                 output.write(buffer, 0, read);
             }
@@ -442,13 +441,13 @@ public final class KiraziumUpdater {
 
     private static byte[] decodeSha256(String hex) {
         if (hex == null || !hex.matches("[0-9a-fA-F]{64}")) {
-            throw new SecurityException("SHA-256 biçimi geçersiz.");
+            throw new SecurityException("Invalid SHA-256 format.");
         }
         byte[] bytes = new byte[32];
         for (int i = 0; i < bytes.length; i++) {
             int high = Character.digit(hex.charAt(i * 2), 16);
             int low = Character.digit(hex.charAt(i * 2 + 1), 16);
-            if (high < 0 || low < 0) throw new SecurityException("SHA-256 biçimi geçersiz.");
+            if (high < 0 || low < 0) throw new SecurityException("Invalid SHA-256 format.");
             bytes[i] = (byte) ((high << 4) | low);
         }
         return bytes;
