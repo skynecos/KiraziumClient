@@ -35,4 +35,5 @@
     <string name="java_gui_paste">Yapıştır</string>
     <string name="customctrl_button_name_hint">Düğme Adı</string>
     <string name="file_picker_missing_path">Bu klasör (veya dosya) mevcut değil.</string>
+    <string name="modpack_install_failed_message">Seçilen .mrpack yüklenemedi. Dosyanın geçerli ve uyumlu olduğundan emin olup tekrar deneyin.</string>
 </resources>
