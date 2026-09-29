@@ -90,7 +90,7 @@ public final class LocalContentManager {
             try {
                 packs = raw.isEmpty() ? new JSONArray() : new JSONArray(raw);
             } catch (Exception error) {
-                throw new IOException("Minecraft resourcePacks ayarı okunamadı.", error);
+                throw new IOException("Could not read the Minecraft resourcePacks setting.", error);
             }
             break;
         }
@@ -143,7 +143,7 @@ public final class LocalContentManager {
 
     public static void setModEnabled(Entry entry, boolean enabled) throws IOException {
         if (entry == null || entry.file == null || !entry.file.isFile()) {
-            throw new IOException("Mod dosyası bulunamadı.");
+            throw new IOException("Mod file not found.");
         }
         if (entry.enabled == enabled) return;
 
@@ -151,19 +151,19 @@ public final class LocalContentManager {
         String targetName;
         if (enabled) {
             if (!currentName.toLowerCase(Locale.ROOT).endsWith(".jar" + DISABLED_SUFFIX)) {
-                throw new IOException("Devre dışı mod biçimi tanınmadı.");
+                throw new IOException("Unrecognized disabled mod format.");
             }
             targetName = currentName.substring(0, currentName.length() - DISABLED_SUFFIX.length());
         } else {
             if (!currentName.toLowerCase(Locale.ROOT).endsWith(".jar")) {
-                throw new IOException("Mod JAR dosyası değil.");
+                throw new IOException("The mod is not a JAR file.");
             }
             targetName = currentName + DISABLED_SUFFIX;
         }
 
         File target = new File(entry.file.getParentFile(), targetName);
-        if (target.exists()) throw new IOException("Aynı isimde başka bir mod dosyası zaten var.");
-        if (!entry.file.renameTo(target)) throw new IOException("Mod durumu değiştirilemedi.");
+        if (target.exists()) throw new IOException("Another mod file with the same name already exists.");
+        if (!entry.file.renameTo(target)) throw new IOException("Could not change the mod state.");
     }
 
     /** Returns the real pack.png or mod metadata icon when the archive provides one. */
@@ -310,9 +310,9 @@ public final class LocalContentManager {
     }
 
     private static File requireGameDirectory(Instance instance) throws IOException {
-        if (instance == null) throw new IOException("Seçili profil bulunamadı.");
+        if (instance == null) throw new IOException("Selected profile not found.");
         File gameDirectory = instance.getGameDirectory();
-        if (gameDirectory == null) throw new IOException("Profil klasörü bulunamadı.");
+        if (gameDirectory == null) throw new IOException("Profile directory not found.");
         FileUtils.ensureDirectory(gameDirectory);
         return gameDirectory;
     }
@@ -332,7 +332,7 @@ public final class LocalContentManager {
                 }
                 return refs;
             } catch (Exception error) {
-                throw new IOException("Minecraft resourcePacks ayarı okunamadı.", error);
+                throw new IOException("Could not read the Minecraft resourcePacks setting.", error);
             }
         }
         return new ArrayList<>();
