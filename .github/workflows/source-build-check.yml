@@ -58,6 +58,24 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      - name: Prepare installable 2.7 UI test version
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path("app_pojavlauncher/build.gradle")
+          text = path.read_text()
+          anchors = {
+              'versionCode 270000': 'versionCode 270001',
+              'versionName "2.7"': 'versionName "2.7-ui-test"',
+          }
+          for old, new in anchors.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f"Expected exactly one build version anchor: {old}")
+              text = text.replace(old, new)
+          path.write_text(text)
+          PY
+
       - name: Compile full release
         run: |
           set -euo pipefail
@@ -70,6 +88,10 @@ jobs:
           set -euo pipefail
           APK="$(find app_pojavlauncher/build/outputs/apk/full/release -type f -name '*.apk' | head -n 1)"
           test -s "$APK"
+          AAPT="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          test -x "$AAPT"
+          "$AAPT" dump badging "$APK" | grep -F "versionCode='270001'" >/dev/null
+          "$AAPT" dump badging "$APK" | grep -F "versionName='2.7-ui-test'" >/dev/null
           echo "Source build succeeded: $APK"
 
       - name: Sign and verify test APK
@@ -95,22 +117,22 @@ jobs:
             --ks-key-alias kirazium \
             --ks-pass env:KIRAZIUM_SIGNING_PASSWORD \
             --key-pass env:KIRAZIUM_SIGNING_PASSWORD \
-            --out out/KiraziumClient-2.6-menu-test-SIGNED.apk \
+            --out out/KiraziumClient-2.7-ui-test-SIGNED.apk \
             "$APK"
 
-          VERIFY_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs out/KiraziumClient-2.6-menu-test-SIGNED.apk)"
+          VERIFY_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs out/KiraziumClient-2.7-ui-test-SIGNED.apk)"
           printf '%s\n' "$VERIFY_OUTPUT"
           SIGNED_CERT_SHA256="$(printf '%s\n' "$VERIFY_OUTPUT" | awk -F': ' '/certificate SHA-256 digest/{value=$NF; gsub(":", "", value); print tolower(value); exit}')"
           test "$SIGNED_CERT_SHA256" = "$EXPECTED_KIRAZIUM_CERT_SHA256"
-          sha256sum out/KiraziumClient-2.6-menu-test-SIGNED.apk > out/KiraziumClient-2.6-menu-test-SIGNED.apk.sha256
+          sha256sum out/KiraziumClient-2.7-ui-test-SIGNED.apk > out/KiraziumClient-2.7-ui-test-SIGNED.apk.sha256
 
       - name: Upload signed test APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: KiraziumClient-2.6-menu-test
+          name: KiraziumClient-2.7-ui-test
           path: |
-            out/KiraziumClient-2.6-menu-test-SIGNED.apk
-            out/KiraziumClient-2.6-menu-test-SIGNED.apk.sha256
+            out/KiraziumClient-2.7-ui-test-SIGNED.apk
+            out/KiraziumClient-2.7-ui-test-SIGNED.apk.sha256
           if-no-files-found: error
           retention-days: 7
 

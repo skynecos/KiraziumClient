@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="shader_packs_menu">Shader Packleri</string>
+    <string name="shader_packs_menu">Shader Packler</string>
     <string name="shader_loader_title">Shader Platformu</string>
     <string name="shader_loader_subtitle">İndireceğin shader için uyumluluk platformunu seç.</string>
     <string name="shader_loader_profile_subtitle">%1$s • Minecraft %2$s</string>
@@ -9,7 +9,7 @@
     <string name="shader_loader_optifine">OptiFine</string>
     <string name="shader_loader_optifine_summary">OptiFine ile uyumlu shader sürümlerini gösterir.</string>
 
-    <string name="shader_packs_title">Shader Packleri</string>
+    <string name="shader_packs_title">Shader Packler</string>
     <string name="shader_packs_subtitle">Modrinth üzerindeki uyumlu shaderları keşfet</string>
     <string name="shader_packs_profile_subtitle">%1$s • %2$s</string>
     <string name="shader_packs_search_hint">Shader ara…</string>

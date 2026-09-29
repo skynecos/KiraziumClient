@@ -154,6 +154,7 @@ public class MainMenuFragment extends Fragment {
         if (!(parentView instanceof ConstraintLayout)) return;
 
         ConstraintLayout parent = (ConstraintLayout) parentView;
+        int cardSpacing = getResources().getDimensionPixelSize(R.dimen._4sdp);
         mControlModeButton = (Button) LayoutInflater.from(requireContext())
                 .inflate(R.layout.item_control_mode_button, parent, false);
         parent.addView(mControlModeButton);
@@ -165,10 +166,10 @@ public class MainMenuFragment extends Fragment {
         constraints.connect(R.id.control_mode_button, ConstraintSet.END,
                 ConstraintSet.PARENT_ID, ConstraintSet.END);
         constraints.connect(R.id.control_mode_button, ConstraintSet.TOP,
-                R.id.ram_card, ConstraintSet.BOTTOM);
+                R.id.ram_card, ConstraintSet.BOTTOM, cardSpacing);
         constraints.clear(R.id.texture_packs_button, ConstraintSet.TOP);
         constraints.connect(R.id.texture_packs_button, ConstraintSet.TOP,
-                R.id.control_mode_button, ConstraintSet.BOTTOM);
+                R.id.control_mode_button, ConstraintSet.BOTTOM, cardSpacing);
         constraints.applyTo(parent);
 
         refreshControlModeButton();
@@ -180,6 +181,7 @@ public class MainMenuFragment extends Fragment {
         if (!(parentView instanceof ConstraintLayout)) return;
 
         ConstraintLayout parent = (ConstraintLayout) parentView;
+        int cardSpacing = getResources().getDimensionPixelSize(R.dimen._4sdp);
         mModpackButton = (Button) LayoutInflater.from(requireContext())
                 .inflate(R.layout.item_modpack_button, parent, false);
         parent.addView(mModpackButton);
@@ -191,10 +193,10 @@ public class MainMenuFragment extends Fragment {
         constraints.connect(R.id.modpack_button, ConstraintSet.END,
                 ConstraintSet.PARENT_ID, ConstraintSet.END);
         constraints.connect(R.id.modpack_button, ConstraintSet.TOP,
-                R.id.mods_button, ConstraintSet.BOTTOM);
+                R.id.mods_button, ConstraintSet.BOTTOM, cardSpacing);
         constraints.clear(R.id.custom_control_button, ConstraintSet.TOP);
         constraints.connect(R.id.custom_control_button, ConstraintSet.TOP,
-                R.id.modpack_button, ConstraintSet.BOTTOM);
+                R.id.modpack_button, ConstraintSet.BOTTOM, cardSpacing);
         constraints.applyTo(parent);
 
         mModpackButton.setOnClickListener(v -> runModpackInstaller());

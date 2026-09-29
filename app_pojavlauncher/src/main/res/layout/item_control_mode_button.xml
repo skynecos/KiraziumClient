@@ -4,7 +4,7 @@
     android:id="@+id/control_mode_button"
     style="@style/LauncherMenuButton.Framed"
     android:layout_width="0dp"
-    android:layout_height="wrap_content"
+    android:layout_height="@dimen/_50sdp"
     android:drawableStart="@drawable/ic_px_gamepad"
     android:gravity="center_vertical"
     android:text="Kontrol Tipi • Classic"

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="texture_packs_menu">Texture Packleri</string>
-    <string name="texture_packs_title">Texture Packleri</string>
+    <string name="texture_packs_menu">Texture Packler</string>
+    <string name="texture_packs_title">Texture Packler</string>
     <string name="texture_packs_subtitle">Kirazium ile uyumlu paketleri keşfet</string>
     <string name="texture_packs_search_hint">Texture pack ara…</string>
     <string name="texture_packs_search">Ara</string>

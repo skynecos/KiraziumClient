@@ -29,8 +29,10 @@
 
     <style name="LauncherMenuButton.Framed" parent="LauncherMenuButton.Universal">
         <item name="android:background">@drawable/kirazium_low_graphics_card</item>
+        <item name="android:layout_height">@dimen/_50sdp</item>
         <item name="android:layout_marginHorizontal">@dimen/_8sdp</item>
         <item name="android:layout_marginVertical">@dimen/_4sdp</item>
+        <item name="android:textAllCaps">false</item>
     </style>
 
     <style name="ThickDivider">
