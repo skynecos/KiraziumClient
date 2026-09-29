@@ -19,7 +19,7 @@
     <string name="modpack_installed_message">Modpack yüklendi: %1$s%2$s</string>
 
     <string name="update_found_downloading">Kirazium %1$s güncellemesi bulundu. İndiriliyor…</string>
-    <string name="update_apk_verification_failed">Güncelleme APK'sı doğrulanamadı.</string>
+    <string name="update_apk_verification_failed">Güncelleme APK\'sı doğrulanamadı.</string>
     <string name="update_already_downloading">Güncelleme zaten indiriliyor.</string>
     <string name="update_progress_title">Kirazium %1$s</string>
     <string name="update_progress_message">Güncelleme indiriliyor ve doğrulanıyor…</string>
