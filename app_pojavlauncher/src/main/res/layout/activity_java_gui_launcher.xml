@@ -93,7 +93,7 @@
 			android:layout_marginTop="2dp"
 			android:background="@drawable/control_button"
 			android:onClick="toggleKeyboard"
-			android:text="@string/java_gui_keyboard"
+			android:text="Keyboard"
 			app:layout_constraintStart_toStartOf="parent"
 			app:layout_constraintTop_toTopOf="parent" />
 
@@ -105,7 +105,7 @@
 			android:layout_marginTop="2dp"
 			android:background="@drawable/control_button"
 			android:onClick="performCopy"
-			android:text="@string/java_gui_copy"
+			android:text="Copy"
 			app:layout_constraintStart_toStartOf="parent"
 			app:layout_constraintTop_toBottomOf="@+id/button" />
 
@@ -116,7 +116,7 @@
 			android:layout_marginTop="2dp"
 			android:background="@drawable/control_button"
 			android:onClick="performPaste"
-			android:text="@string/java_gui_paste"
+			android:text="Paste"
 			app:layout_constraintStart_toStartOf="parent"
 			app:layout_constraintTop_toBottomOf="@+id/button3" />
 

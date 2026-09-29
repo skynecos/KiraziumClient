@@ -130,11 +130,6 @@ android {
         }
     }
 
-    androidResources {
-        // Kirazium Launcher officially supports English and Turkish only.
-        localeFilters += ["en", "tr"]
-    }
-
     packagingOptions {
         jniLibs {
             useLegacyPackaging = true

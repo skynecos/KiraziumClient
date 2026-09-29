@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="active_packs_menu">Active Packs</string>
-    <string name="active_mods_menu">Active Mods</string>
-    <string name="active_packs_title">Pack Management</string>
-    <string name="active_mods_title">Mod Management</string>
-    <string name="active_packs_card_description">Enable or disable installed texture packs</string>
-    <string name="active_mods_card_description">Enable or disable installed mods</string>
+    <string name="active_packs_menu">Aktif Packler</string>
+    <string name="active_mods_menu">Aktif Modlar</string>
+    <string name="active_packs_title">Pack Yönetimi</string>
+    <string name="active_mods_title">Mod Yönetimi</string>
+    <string name="active_packs_card_description">Yüklü texture packleri aç veya kapat</string>
+    <string name="active_mods_card_description">Yüklü modları aç veya kapat</string>
     <string name="active_packs_subtitle">%1$s • Minecraft %2$s</string>
     <string name="active_mods_subtitle">%1$s • %2$s • %3$s</string>
-    <string name="local_content_loading">Loading content…</string>
-    <string name="local_content_no_packs">No texture packs are installed in this profile.</string>
-    <string name="local_content_no_mods">No mods are installed in this profile.</string>
-    <string name="local_content_enabled">Enabled</string>
-    <string name="local_content_disabled">Disabled</string>
-    <string name="local_content_toggle_failed">Could not change the status.</string>
-    <string name="local_pack_enabled">Pack enabled. It will be applied the next time the game starts.</string>
-    <string name="local_pack_disabled">Pack disabled.</string>
-    <string name="local_mod_enabled">Mod enabled.</string>
-    <string name="local_mod_disabled">Mod disabled. The file was not deleted.</string>
-    <string name="local_content_profile_unknown">Could not read the selected profile information.</string>
+    <string name="local_content_loading">İçerikler yükleniyor…</string>
+    <string name="local_content_no_packs">Bu profilde yüklü texture pack yok.</string>
+    <string name="local_content_no_mods">Bu profilde yüklü mod yok.</string>
+    <string name="local_content_enabled">Açık</string>
+    <string name="local_content_disabled">Kapalı</string>
+    <string name="local_content_toggle_failed">Durum değiştirilemedi.</string>
+    <string name="local_pack_enabled">Pack açıldı. Bir sonraki oyun açılışında uygulanacak.</string>
+    <string name="local_pack_disabled">Pack kapatıldı.</string>
+    <string name="local_mod_enabled">Mod açıldı.</string>
+    <string name="local_mod_disabled">Mod kapatıldı. Dosya silinmedi.</string>
+    <string name="local_content_profile_unknown">Seçili profil bilgisi okunamadı.</string>
 </resources>

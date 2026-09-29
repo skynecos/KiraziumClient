@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="mods_menu">Mods</string>
-    <string name="mods_title">Mods</string>
-    <string name="mods_subtitle">Discover Fabric mods compatible with Kirazium. Required dependencies are installed automatically.</string>
-    <string name="mods_search_hint">Search mods...</string>
-    <string name="mods_search">Search</string>
-    <string name="mods_loading">Loading mods...</string>
-    <string name="mods_empty">No compatible mods found.</string>
-    <string name="mods_error">Could not load mods. Check your Internet connection.</string>
-    <string name="mod_download">Download</string>
-    <string name="mod_downloading">Downloading...</string>
-    <string name="mod_installed">Installed</string>
-    <string name="mod_download_failed">Could not install the mod.</string>
-    <string name="mod_installed_message">%1$s installed.</string>
-    <string name="mod_downloads">%1$s downloads</string>
+    <string name="mods_menu">Modlar</string>
+    <string name="mods_title">Modlar</string>
+    <string name="mods_subtitle">Kirazium ile uyumlu Fabric modlarını keşfet. Gerekli bağımlılıklar otomatik kurulur.</string>
+    <string name="mods_search_hint">Mod ara...</string>
+    <string name="mods_search">Ara</string>
+    <string name="mods_loading">Modlar yükleniyor...</string>
+    <string name="mods_empty">Uyumlu mod bulunamadı.</string>
+    <string name="mods_error">Modlar alınamadı. İnternet bağlantını kontrol et.</string>
+    <string name="mod_download">İndir</string>
+    <string name="mod_downloading">İndiriliyor...</string>
+    <string name="mod_installed">Kuruldu</string>
+    <string name="mod_download_failed">Mod kurulamadı.</string>
+    <string name="mod_installed_message">%1$s kuruldu.</string>
+    <string name="mod_downloads">%1$s indirme</string>
 </resources>
