@@ -110,7 +110,7 @@
     <string name="vml_fail_insert_hooks">Hook\'lar yüklenemedi: %s</string>
     <string name="vml_fail_load_classpath">Classpath yüklenemedi. Ayrıntılar için latestlog.txt dosyasını kontrol edin</string>
     <string name="vml_fail_run_main">Ana sınıf başlatılamadı. Ayrıntılar için latestlog.txt dosyasını kontrol edin</string>
-    <string name="vml_huh">???</string>
+    <string name="vml_huh">\???</string>
     <string name="vml_err_ok">Başarılı</string>
     <string name="vml_err_unknown">Bilinmeyen hata</string>
     <string name="vml_err_detached">İş parçacığı Java VM\'den ayrılmış</string>
