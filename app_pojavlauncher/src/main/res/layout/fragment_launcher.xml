@@ -186,7 +186,7 @@
 
 			<com.kdt.mcgui.LauncherMenuButton
 				android:id="@+id/custom_control_button"
-				style="@style/LauncherMenuButton.Framed"
+				style="@style/LauncherMenuButton.Universal"
 				android:layout_width="match_parent"
 				android:drawableStart="@drawable/ic_px_gamepad"
 				android:text="@string/mcl_option_customcontrol"
@@ -194,7 +194,7 @@
 
 			<com.kdt.mcgui.LauncherMenuButton
 				android:id="@+id/install_jar_button"
-				style="@style/LauncherMenuButton.Framed"
+				style="@style/LauncherMenuButton.Universal"
 				android:layout_width="match_parent"
 				android:drawableStart="@drawable/ic_px_java_run"
 				android:text="@string/main_install_jar_file"
@@ -202,7 +202,7 @@
 
 			<com.kdt.mcgui.LauncherMenuButton
 				android:id="@+id/share_logs_button"
-				style="@style/LauncherMenuButton.Framed"
+				style="@style/LauncherMenuButton.Universal"
 				android:layout_width="match_parent"
 				android:drawableStart="@drawable/ic_px_sharelog"
 				android:text="@string/main_share_logs"
@@ -210,7 +210,7 @@
 
 			<com.kdt.mcgui.LauncherMenuButton
 				android:id="@+id/open_files_button"
-				style="@style/LauncherMenuButton.Framed"
+				style="@style/LauncherMenuButton.Universal"
 				android:layout_width="match_parent"
 				android:drawableStart="@drawable/ic_px_folder"
 				android:text="@string/mcl_button_open_directory"
