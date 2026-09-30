@@ -27,7 +27,10 @@ public class Instance extends DisplayInstance {
     public int argsMode;
     public String selectedRuntime;
     public String controlLayout;
-    public boolean sharedData;
+    // New instances share the normal Minecraft data directory unless an importer or the user
+    // explicitly opts into isolation. This also makes installer-created profiles consistent
+    // with the launcher-created default profile.
+    public boolean sharedData = true;
 
     protected Instance() {
     }

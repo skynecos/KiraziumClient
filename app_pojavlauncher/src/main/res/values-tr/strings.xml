@@ -168,6 +168,9 @@
     <string name="multirt_nojava8rt">Java 8 bulunamadı. Bu seçeneği kullanabilmeniz için Java 8 kurmanız gerekiyor.</string>
     <string name="multirt_delete_runtime">Runtime\'ı sil</string>
     <string name="pvc_gameDirectory">Oyun dizini</string>
+    <string name="instance_shared_data">Paylaşılan veriler (değiştirmek için dokunun)</string>
+    <string name="instance_shared_data_on">Oyun verilerini paylaşılan dizinde sakla</string>
+    <string name="instance_shared_data_off">Oyun verilerini instance dizininde sakla</string>
     <string name="pvc_jvmArgs">JVM değişkenleri</string>
     <string name="preference_mouse_start_title">Sanal imleç açık olarak başla</string>
     <string name="preference_mouse_start_description">Bu seçenek açık olduğunda, başlangıçta Sanal Fare görünür olacak.</string>
