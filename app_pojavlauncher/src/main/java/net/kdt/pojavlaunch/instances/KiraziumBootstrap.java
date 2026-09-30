@@ -195,27 +195,22 @@ public final class KiraziumBootstrap {
     }
 
     public static void ensureClientFiles(List<DisplayInstance> instances) {
-        boolean hasKirazium = false;
         for (DisplayInstance instance : instances) {
-            if (PROFILE_NAME.equals(instance.name)) {
-                hasKirazium = true;
-                break;
+            if (!PROFILE_NAME.equals(instance.name) || instance.mInstanceRoot == null) continue;
+            File gameDirectory = instance.mInstanceRoot;
+            try {
+                FileUtils.ensureDirectory(gameDirectory);
+                ensureServerEntry(gameDirectory);
+                ensureLowEndOptions(gameDirectory);
+                ensureTurkishLanguage(gameDirectory);
+                ensureLowEndOptimizations(gameDirectory);
+                ensurePerformanceMods(gameDirectory);
+                ensureResourcePackCompatibility(gameDirectory);
+            } catch (Exception exception) {
+                // Do not make the launcher unusable when a third-party download is temporarily unavailable.
+                Log.w(TAG, "Kirazium client preparation will be retried for " +
+                        gameDirectory.getName(), exception);
             }
-        }
-        if (!hasKirazium) return;
-
-        File gameDirectory = Instances.SHARED_DATA_DIRECTORY;
-        try {
-            FileUtils.ensureDirectory(gameDirectory);
-            ensureServerEntry(gameDirectory);
-            ensureLowEndOptions(gameDirectory);
-            ensureTurkishLanguage(gameDirectory);
-            ensureLowEndOptimizations(gameDirectory);
-            ensurePerformanceMods(gameDirectory);
-            ensureResourcePackCompatibility(gameDirectory);
-        } catch (Exception exception) {
-            // Do not make the launcher unusable when a third-party download is temporarily unavailable.
-            Log.w(TAG, "Kirazium client preparation will be retried", exception);
         }
     }
 

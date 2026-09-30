@@ -34,8 +34,6 @@ public final class KiraziumCinemaInstaller {
         if (context == null || Tools.DIR_GAME_HOME == null) return;
 
         Set<String> gameDirectories = new LinkedHashSet<>();
-        // The stock Kirazium profile is sharedData=true, so this is its real game directory.
-        gameDirectories.add(Instances.SHARED_DATA_DIRECTORY.getAbsolutePath());
 
         try {
             List<Instance> instances = Instances.loadAllInstances();
@@ -45,8 +43,7 @@ public final class KiraziumCinemaInstaller {
                 }
             }
         } catch (IOException exception) {
-            Log.w(TAG, "Could not enumerate Kirazium instances; shared directory fallback will be used",
-                    exception);
+            Log.w(TAG, "Could not enumerate isolated Kirazium instances", exception);
         }
 
         for (String path : gameDirectories) {

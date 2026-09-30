@@ -50,7 +50,7 @@ public class OptiFineInstallFragment extends ModVersionListFragment<OptiFineUtil
             Instances.createInstance(instance -> {
                 instance.name = "OptiFine";
                 instance.installer = instanceInstaller;
-                instance.sharedData = true;
+                instance.sharedData = false;
             }, "OptiFine");
             ProgressLayout.clearProgress(ProgressLayout.INSTALL_MODPACK);
             instanceInstaller.start();

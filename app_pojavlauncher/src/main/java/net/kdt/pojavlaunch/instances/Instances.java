@@ -21,6 +21,8 @@ public class Instances {
     public static final File SHARED_DATA_DIRECTORY = new File(Tools.DIR_GAME_HOME, "shared_dir");
     private static final String PREF_KEY_RENDERER_INHERITANCE_V2 =
             "kiraziumRendererInheritanceV2";
+    private static final String PREF_KEY_ISOLATED_INSTANCE_DATA_V1 =
+            "kiraziumIsolatedInstanceDataV1";
     private static final String LEGACY_KIRAZIUM_RENDERER = "opengles3_ltw";
 
     public final List<DisplayInstance> list;
@@ -98,6 +100,7 @@ public class Instances {
             selectionIndex[0] = 0;
         }
         migrateLegacyRendererDefaults();
+        migrateToIsolatedInstanceData();
         KiraziumBootstrap.ensureClientFiles(instances);
         return new Instances(Collections.unmodifiableList(instances), selectionIndex[0]);
     }
@@ -153,6 +156,39 @@ public class Instances {
         }
     }
 
+    /**
+     * KiraziumClient 2.7.2 briefly defaulted profiles to the shared game directory. That makes
+     * unrelated instances use the same mods, configs, worlds and packs. Flip only the metadata;
+     * the old shared directory is deliberately left untouched as a recoverable backup because its
+     * already-mixed contents cannot be attributed safely to individual instances.
+     */
+    private static void migrateToIsolatedInstanceData() {
+        if (LauncherPreferences.DEFAULT_PREF == null ||
+                LauncherPreferences.DEFAULT_PREF.getBoolean(
+                        PREF_KEY_ISOLATED_INSTANCE_DATA_V1, false)) {
+            return;
+        }
+
+        try {
+            int migratedCount = 0;
+            for (Instance instance : loadInstances(Instance.class, null)) {
+                if (!instance.sharedData) continue;
+                instance.sharedData = false;
+                instance.write();
+                migratedCount++;
+            }
+
+            LauncherPreferences.DEFAULT_PREF.edit()
+                    .putBoolean(PREF_KEY_ISOLATED_INSTANCE_DATA_V1, true)
+                    .apply();
+            Log.i("Instances", "Migrated " + migratedCount +
+                    " instance(s) from shared data to isolated directories; shared_dir preserved");
+        } catch (IOException exception) {
+            // Do not mark the migration complete so it can be retried on the next launcher start.
+            Log.w("Instances", "Could not migrate instances to isolated data directories", exception);
+        }
+    }
+
     private static File findNewInstanceRoot(String prefix) {
         File instanceRoot;
         do {
@@ -194,7 +230,7 @@ public class Instances {
     private static void createFirstTimeInstance() throws IOException {
         String versionId = KiraziumBootstrap.installFabricProfile();
         internalCreateInstance((instance)-> {
-            instance.sharedData = true;
+            instance.sharedData = false;
             instance.name = KiraziumBootstrap.PROFILE_NAME;
             instance.icon = KiraziumBootstrap.PROFILE_ICON;
             instance.versionId = versionId;
@@ -210,7 +246,7 @@ public class Instances {
      */
     public static Instance createDefaultInstance() throws IOException {
         return createInstance((instance)-> {
-            instance.sharedData = true;
+            instance.sharedData = false;
             instance.versionId = Instance.VERSION_LATEST_RELEASE;
         }, null);
     }

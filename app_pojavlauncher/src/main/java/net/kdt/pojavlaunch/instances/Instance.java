@@ -27,10 +27,9 @@ public class Instance extends DisplayInstance {
     public int argsMode;
     public String selectedRuntime;
     public String controlLayout;
-    // New instances share the normal Minecraft data directory unless an importer or the user
-    // explicitly opts into isolation. This also makes installer-created profiles consistent
-    // with the launcher-created default profile.
-    public boolean sharedData = true;
+    // Each instance owns its complete game directory. Sharing this directory also shares mods,
+    // configs, worlds and packs, which can silently contaminate otherwise unrelated modpacks.
+    public boolean sharedData = false;
 
     protected Instance() {
     }
@@ -114,7 +113,8 @@ public class Instance extends DisplayInstance {
     }
 
     public File getGameDirectory() {
-        if(sharedData) return Instances.SHARED_DATA_DIRECTORY;
+        // Instance content must never resolve to the global shared directory. Keep the legacy
+        // field only so older metadata can be read and migrated without losing compatibility.
         return mInstanceRoot;
     }
 }

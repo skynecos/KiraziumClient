@@ -106,7 +106,7 @@ public final class MrpackInstaller {
                 final boolean needsJava25 = metadata.minecraftVersion.startsWith("26.");
 
                 createdInstance = Instances.createInstance(instance -> {
-                    instance.sharedData = true;
+                    instance.sharedData = false;
                     instance.name = instanceName;
                     instance.icon = "fabric";
                     instance.versionId = instanceVersionId;
