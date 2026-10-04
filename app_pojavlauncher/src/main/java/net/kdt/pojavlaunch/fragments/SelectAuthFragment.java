@@ -29,8 +29,7 @@ public class SelectAuthFragment extends Fragment {
         Button mLocalButton = view.findViewById(R.id.button_local_authentication);
         Button mElyByButton = view.findViewById(R.id.button_elyby_authentication);
         Button kiraziumRegisterButton = view.findViewById(R.id.button_kirazium_register);
-        kiraziumRegisterButton.setVisibility(BuildConfig.DEBUG
-                && !BuildConfig.KIRAZIUM_ACCOUNT_API_BASE_URL.isEmpty() ? View.VISIBLE : View.GONE);
+        kiraziumRegisterButton.setVisibility(BuildConfig.DEBUG ? View.VISIBLE : View.GONE);
 
         mMicrosoftButton.setOnClickListener(v -> launchAuthFragment(MicrosoftLoginFragment.class, MicrosoftLoginFragment.TAG));
         mLocalButton.setOnClickListener(v -> launchAuthFragment(LocalLoginFragment.class, LocalLoginFragment.TAG));

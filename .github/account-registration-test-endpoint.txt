@@ -1,0 +1,1 @@
+# No active Quick Tunnel. Test APK only; never put a production account endpoint here.

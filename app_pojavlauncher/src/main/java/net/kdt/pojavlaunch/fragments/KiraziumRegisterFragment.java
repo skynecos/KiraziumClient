@@ -35,6 +35,9 @@ public class KiraziumRegisterFragment extends Fragment {
     public static final String TAG = "KIRAZIUM_REGISTER_FRAGMENT";
     private static final Pattern NAME = Pattern.compile("[A-Za-z0-9_]{3,16}");
     private static final Pattern EMAIL = Pattern.compile("[^\\s@]+@[^\\s@]+\\.[^\\s@]+");
+    private static final Pattern TEST_ORIGIN = Pattern.compile("https://[a-z0-9-]+\\.trycloudflare\\.com");
+    private static final String TEST_CONFIG_URL = "https://raw.githubusercontent.com/skynecos/KiraziumClient/"
+            + "test/kirazium-account-registration/.github/account-registration-test-endpoint.txt";
     private final ExecutorService requests = Executors.newSingleThreadExecutor();
 
     public KiraziumRegisterFragment() {
@@ -56,7 +59,7 @@ public class KiraziumRegisterFragment extends Fragment {
 
     private void submit(View root, EditText nameInput, EditText emailInput, EditText passwordInput,
                         TextView status, Button check, Button register, boolean create) {
-        if (!BuildConfig.DEBUG || BuildConfig.KIRAZIUM_ACCOUNT_API_BASE_URL.isEmpty()) {
+        if (!BuildConfig.DEBUG) {
             status.setText(R.string.kirazium_account_not_configured);
             return;
         }
@@ -75,15 +78,16 @@ public class KiraziumRegisterFragment extends Fragment {
             int message;
             boolean created = false;
             try {
+                String origin = resolveTestOrigin();
                 if (create) {
-                    ApiResult result = post("/v1/accounts", new JSONObject()
+                    ApiResult result = post(origin, "/v1/accounts", new JSONObject()
                             .put("username", name).put("email", email).put("password", password));
                     message = errorMessage(result);
                     created = result.status == 201;
                     if (created) message = R.string.kirazium_account_registered;
                 } else {
-                    ApiResult nameCheck = post("/v1/usernames/check", new JSONObject().put("username", name));
-                    ApiResult emailCheck = post("/v1/emails/check", new JSONObject().put("email", email));
+                    ApiResult nameCheck = post(origin, "/v1/usernames/check", new JSONObject().put("username", name));
+                    ApiResult emailCheck = post(origin, "/v1/emails/check", new JSONObject().put("email", email));
                     if (nameCheck.status != 200 || emailCheck.status != 200) {
                         message = R.string.kirazium_account_unavailable;
                     } else if (!nameCheck.body.optBoolean("available", false)) {
@@ -122,8 +126,33 @@ public class KiraziumRegisterFragment extends Fragment {
         return R.string.kirazium_account_unavailable;
     }
 
-    private static ApiResult post(String path, JSONObject body) throws IOException, JSONException {
-        URL url = new URL(BuildConfig.KIRAZIUM_ACCOUNT_API_BASE_URL.replaceAll("/$", "") + path);
+    private static String resolveTestOrigin() throws IOException {
+        String configured = BuildConfig.KIRAZIUM_ACCOUNT_API_BASE_URL.replaceAll("/$", "");
+        if (!configured.isEmpty()) return configured;
+        HttpURLConnection connection = (HttpURLConnection) new URL(TEST_CONFIG_URL).openConnection();
+        connection.setConnectTimeout(5000);
+        connection.setReadTimeout(5000);
+        connection.setInstanceFollowRedirects(false);
+        try {
+            if (connection.getResponseCode() != 200) throw new IOException("Test endpoint unavailable");
+            try (InputStream input = connection.getInputStream(); ByteArrayOutputStream data = new ByteArrayOutputStream()) {
+                byte[] chunk = new byte[128];
+                int count;
+                while ((count = input.read(chunk)) != -1) {
+                    if (data.size() + count > 256) throw new IOException("Test endpoint response too large");
+                    data.write(chunk, 0, count);
+                }
+                String origin = data.toString("UTF-8").trim();
+                if (!TEST_ORIGIN.matcher(origin).matches()) throw new IOException("No active test endpoint");
+                return origin;
+            }
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    private static ApiResult post(String origin, String path, JSONObject body) throws IOException, JSONException {
+        URL url = new URL(origin + path);
         if (!"https".equals(url.getProtocol())) throw new IOException("HTTPS required");
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setConnectTimeout(5000);
