@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="kirazium_account_register_title">Kirazium ile Kayıt Ol</string>
+    <string name="kirazium_account_test_only">Yalnızca test sürümünde çalışır. Kt ile başlayan sahte kullanıcı adı, example.test e-postası ve TestOnly- ile başlayan şifre kullan. İzole sunucuda AuthMe hesabı oluşturur. E-posta kodu gönderilmez.</string>
+    <string name="kirazium_account_username">Minecraft kullanıcı adı</string>
+    <string name="kirazium_account_email">E-posta adresi</string>
+    <string name="kirazium_account_password">Şifre</string>
+    <string name="kirazium_account_check">Ad ve e-postayı kontrol et</string>
+    <string name="kirazium_account_register">Kayıt Ol</string>
+    <string name="kirazium_account_not_configured">HTTPS test hesap servisi ayarlanmamış.</string>
+    <string name="kirazium_account_invalid_input">Kullanıcı adı, e-posta ve şifre alanlarını kontrol et.</string>
+    <string name="kirazium_account_checking">Uygunluk kontrol ediliyor…</string>
+    <string name="kirazium_account_registering">Hesap oluşturuluyor…</string>
+    <string name="kirazium_account_available">Kullanıcı adı ve e-posta şu anda uygun. Kayıtta yeniden kontrol edilir.</string>
+    <string name="kirazium_account_username_taken">Bu kullanıcı adı zaten kullanılıyor.</string>
+    <string name="kirazium_account_email_taken">Bu e-posta zaten kullanılıyor.</string>
+    <string name="kirazium_account_unavailable">Test hesap servisine ulaşılamadı.</string>
+    <string name="kirazium_account_registered">Test hesabı oluşturuldu. Otomatik oyun girişi henüz etkin değil.</string>
+</resources>

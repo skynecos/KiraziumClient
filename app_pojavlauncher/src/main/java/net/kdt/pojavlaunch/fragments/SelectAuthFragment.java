@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment;
 
 import com.kdt.mcgui.ProgressLayout;
 
+import git.artdeell.mojo.BuildConfig;
 import git.artdeell.mojo.R;
 import net.kdt.pojavlaunch.Tools;
 import net.kdt.pojavlaunch.progresskeeper.ProgressKeeper;
@@ -27,10 +28,15 @@ public class SelectAuthFragment extends Fragment {
         Button mMicrosoftButton = view.findViewById(R.id.button_microsoft_authentication);
         Button mLocalButton = view.findViewById(R.id.button_local_authentication);
         Button mElyByButton = view.findViewById(R.id.button_elyby_authentication);
+        Button kiraziumRegisterButton = view.findViewById(R.id.button_kirazium_register);
+        kiraziumRegisterButton.setVisibility(BuildConfig.DEBUG
+                && !BuildConfig.KIRAZIUM_ACCOUNT_API_BASE_URL.isEmpty() ? View.VISIBLE : View.GONE);
 
         mMicrosoftButton.setOnClickListener(v -> launchAuthFragment(MicrosoftLoginFragment.class, MicrosoftLoginFragment.TAG));
         mLocalButton.setOnClickListener(v -> launchAuthFragment(LocalLoginFragment.class, LocalLoginFragment.TAG));
         mElyByButton.setOnClickListener(v -> launchAuthFragment(ElyByLoginFragment.class, ElyByLoginFragment.TAG));
+        kiraziumRegisterButton.setOnClickListener(v -> launchAuthFragment(
+                KiraziumRegisterFragment.class, KiraziumRegisterFragment.TAG));
     }
 
     private void launchAuthFragment(Class<? extends  Fragment> fragmentClass, String fragmentTag) {

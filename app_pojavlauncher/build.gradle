@@ -29,6 +29,12 @@ def getCFApiKey = {
     return "DUMMY"
 }
 
+// Only a debug build may talk to the temporary HTTPS account test endpoint.
+def kiraziumAccountTestUrl = providers.gradleProperty('kiraziumAccountTestUrl').orElse('').get()
+if (kiraziumAccountTestUrl && !(kiraziumAccountTestUrl ==~ /^https:\/\/[A-Za-z0-9.-]+(?::[0-9]+)?\/?$/)) {
+    throw new GradleException('kiraziumAccountTestUrl must be a simple HTTPS origin')
+}
+
 configurations {
     instrumentedClasspath {
         canBeConsumed = false
@@ -63,6 +69,7 @@ android {
         multiDexEnabled false //important
         resValue 'string', 'curseforge_api_key', getCFApiKey()
         resValue 'string', 'group_id', 'git.artdeell'
+        buildConfigField 'String', 'KIRAZIUM_ACCOUNT_API_BASE_URL', '""'
     }
 
     flavorDimensions  = ["runtime"]
@@ -87,6 +94,7 @@ android {
             signingConfig signingConfigs.customDebug
             resValue 'string', 'application_package', 'com.kirazium.launcher.debug'
             resValue 'string', 'storageProviderAuthorities', 'com.kirazium.launcher.scoped.gamefolder.debug'
+            buildConfigField 'String', 'KIRAZIUM_ACCOUNT_API_BASE_URL', '"' + kiraziumAccountTestUrl + '"'
         }
         proguard {
             initWith debug

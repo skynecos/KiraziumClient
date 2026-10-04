@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:background="@color/background_app">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:padding="24dp">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/kirazium_account_register_title"
+            android:textSize="22sp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/kirazium_account_test_only" />
+        <EditText
+            android:id="@+id/kirazium_register_username"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="@string/kirazium_account_username"
+            android:inputType="textVisiblePassword"
+            android:maxLength="16"
+            android:singleLine="true" />
+        <EditText
+            android:id="@+id/kirazium_register_email"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/kirazium_account_email"
+            android:inputType="textEmailAddress"
+            android:maxLength="254"
+            android:singleLine="true" />
+        <EditText
+            android:id="@+id/kirazium_register_password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/kirazium_account_password"
+            android:inputType="textPassword"
+            android:maxLength="30"
+            android:singleLine="true" />
+        <TextView
+            android:id="@+id/kirazium_register_status"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:accessibilityLiveRegion="polite" />
+        <Button
+            android:id="@+id/kirazium_register_check"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/kirazium_account_check" />
+        <Button
+            android:id="@+id/kirazium_register_submit"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/kirazium_account_register" />
+    </LinearLayout>
+</ScrollView>

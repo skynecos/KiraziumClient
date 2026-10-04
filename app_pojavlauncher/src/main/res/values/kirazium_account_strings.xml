@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="kirazium_account_register_title">Register with Kirazium</string>
+    <string name="kirazium_account_test_only">Test build only. Use a synthetic username beginning with Kt, an example.test email, and a password beginning with TestOnly-. This creates an AuthMe account on the isolated server. No email code is sent.</string>
+    <string name="kirazium_account_username">Minecraft username</string>
+    <string name="kirazium_account_email">Email address</string>
+    <string name="kirazium_account_password">Password</string>
+    <string name="kirazium_account_check">Check username and email</string>
+    <string name="kirazium_account_register">Register</string>
+    <string name="kirazium_account_not_configured">The HTTPS test account service is not configured.</string>
+    <string name="kirazium_account_invalid_input">Check the username, email and password fields.</string>
+    <string name="kirazium_account_checking">Checking availability…</string>
+    <string name="kirazium_account_registering">Creating account…</string>
+    <string name="kirazium_account_available">Username and email are currently available. Registration checks again.</string>
+    <string name="kirazium_account_username_taken">This username is already in use.</string>
+    <string name="kirazium_account_email_taken">This email is already in use.</string>
+    <string name="kirazium_account_unavailable">The test account service could not be reached.</string>
+    <string name="kirazium_account_registered">Test account created. Automatic game login is not yet enabled.</string>
+</resources>

@@ -46,5 +46,15 @@
             android:layout_marginTop="@dimen/_20sdp"
             app:layout_constraintTop_toBottomOf="@+id/button_elyby_authentication" />
 
+        <com.kdt.mcgui.MineButton
+            android:id="@+id/button_kirazium_register"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="@dimen/_25sdp"
+            android:layout_marginTop="@dimen/_20sdp"
+            android:text="@string/kirazium_account_register_title"
+            android:textSize="@dimen/_12ssp"
+            app:layout_constraintTop_toBottomOf="@id/button_local_authentication" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 </FrameLayout>
