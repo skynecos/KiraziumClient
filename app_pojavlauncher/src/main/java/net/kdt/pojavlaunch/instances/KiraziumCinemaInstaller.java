@@ -22,11 +22,11 @@ import java.util.Set;
 public final class KiraziumCinemaInstaller {
     private static final String TAG = "KiraziumCinemaInstaller";
     private static final String FILE_NAME =
-            "dreamdisplays-fabric-26.1.2-1.9.5-kirazium-android-stallfix1.jar";
+            "dreamdisplays-fabric-1.21.11-1.9.5-kirazium-android-mobilefix1.jar";
     private static final String ASSET_PATH = "kirazium/mods/" + FILE_NAME;
     private static final String SHA256 =
-            "918872694b9fe437b6c412dda287e717d33b654a1bf8885af0ceea0ed38caab1";
-    private static final long SIZE = 23_595_235L;
+            "01f4a9a9fbab1fad686d2d62b8210d7dd28686bca3551537e158f15b100f6fc9";
+    private static final long SIZE = 22_983_449L;
 
     private KiraziumCinemaInstaller() {}
 

@@ -37,6 +37,7 @@ import net.kdt.pojavlaunch.instances.Instance;
 import net.kdt.pojavlaunch.instances.InstanceInstaller;
 import net.kdt.pojavlaunch.instances.Instances;
 import net.kdt.pojavlaunch.instances.KiraziumBootstrap;
+import net.kdt.pojavlaunch.instances.KiraziumDefaultModpackInstaller;
 import net.kdt.pojavlaunch.lifecycle.ContextAwareDoneListener;
 import net.kdt.pojavlaunch.lifecycle.ContextExecutor;
 import net.kdt.pojavlaunch.modloaders.modpacks.imagecache.IconCacheJanitor;
@@ -129,6 +130,14 @@ public class LauncherActivity extends BaseActivity {
         if (KiraziumBootstrap.PROFILE_NAME.equals(selectedInstance.name) &&
                 !checkForPermission(23, Manifest.permission.RECORD_AUDIO)) {
             askForPermission(23, Manifest.permission.RECORD_AUDIO);
+        }
+
+        try {
+            KiraziumDefaultModpackInstaller.ensureInstalled(this, selectedInstance);
+        } catch (java.io.IOException exception) {
+            Toast.makeText(this, R.string.kirazium_default_modpack_install_failed,
+                    Toast.LENGTH_LONG).show();
+            return false;
         }
 
         KiraziumBootstrap.applySelectedGraphicsMode(this, selectedInstance);

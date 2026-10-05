@@ -1,0 +1,104 @@
+name: KiraziumClient 1.21.11 Source Check
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/fabric-12111-default
+    paths:
+      - ".github/workflows/fabric-12111-source-check.yml"
+      - "app_pojavlauncher/build.gradle"
+      - "app_pojavlauncher/src/main/assets/kirazium/**"
+      - "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/LauncherActivity.java"
+      - "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/PojavApplication.java"
+      - "app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/**"
+      - "app_pojavlauncher/src/main/res/values/strings.xml"
+      - "app_pojavlauncher/src/main/res/values-tr/strings.xml"
+
+permissions:
+  contents: read
+
+env:
+  PACK: app_pojavlauncher/src/main/assets/kirazium/modpacks/sodium-boost-mx-1.21.11.mrpack
+  PACK_SHA256: 08fc89fb4462c19826efc248438190b37c9e202e4108d8183a8a7d1ab06df8f0
+  CINEMA: app_pojavlauncher/src/main/assets/kirazium/mods/dreamdisplays-fabric-1.21.11-1.9.5-kirazium-android-mobilefix1.jar
+  CINEMA_SHA256: 01f4a9a9fbab1fad686d2d62b8210d7dd28686bca3551537e158f15b100f6fc9
+
+jobs:
+  build-source:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 75
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          submodules: recursive
+
+      - name: Verify exact bundled inputs
+        run: |
+          set -euo pipefail
+          echo "$PACK_SHA256  $PACK" | sha256sum -c -
+          echo "$CINEMA_SHA256  $CINEMA" | sha256sum -c -
+          test "$(stat -c%s "$PACK")" = 15709227
+          test "$(stat -c%s "$CINEMA")" = 22983449
+          unzip -p "$PACK" modrinth.index.json | grep -F '"minecraft": "1.21.11"' >/dev/null
+          unzip -p "$PACK" modrinth.index.json | grep -F '"fabric-loader": "0.19.2"' >/dev/null
+          test "$(unzip -Z1 "$PACK" | grep -Ec '^overrides/mods/.*\.jar$')" = 17
+          unzip -p "$CINEMA" fabric.mod.json | grep -F '1.9.5-kirazium-android-mobilefix1' >/dev/null
+          unzip -p "$CINEMA" fabric.mod.json | grep -F '"minecraft": "1.21.11"' >/dev/null
+          grep -F 'versionName "2.7.5"' app_pojavlauncher/build.gradle >/dev/null
+          grep -F 'versionCode 270500' app_pojavlauncher/build.gradle >/dev/null
+          grep -F 'public static final String GAME_VERSION = "1.21.11";' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumBootstrap.java >/dev/null
+          grep -F 'public static final String FABRIC_LOADER_VERSION = "0.19.2";' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumBootstrap.java >/dev/null
+          grep -F 'instance.selectedRuntime = "Internal-21";' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/Instances.java >/dev/null
+          grep -F 'KiraziumDefaultModpackInstaller.ensureInstalled(this, selectedInstance);' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/LauncherActivity.java >/dev/null
+
+      - name: Install Android build tools
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$SDK_ROOT"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -perm -u+x | head -n 1 || true)"
+          fi
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "ndk;29.0.14206865" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Get pinned LTW renderer
+        uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
+        with:
+          repo: MojoLauncher/LTW
+          workflow: android.yml
+          workflow_conclusion: success
+          commit: 3aca75d9f3f05afd0b02a3d8f686084d968fa200
+          name: output-aar
+          path: app_pojavlauncher/libs
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Compile non-release source
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          unset ANDROID_NDK_ROOT
+          ./gradlew :app_pojavlauncher:assembleFullRelease --stacktrace
+
+      - name: Verify APK payload
+        run: |
+          set -euo pipefail
+          APK="$(find app_pojavlauncher/build/outputs/apk/full/release -type f -name '*.apk' | head -n 1)"
+          test -s "$APK"
+          AAPT="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          "$AAPT" dump badging "$APK" | grep -F "versionCode='270500'" >/dev/null
+          "$AAPT" dump badging "$APK" | grep -F "versionName='2.7.5'" >/dev/null
+          unzip -p "$APK" "assets/kirazium/modpacks/sodium-boost-mx-1.21.11.mrpack" > /tmp/pack.mrpack
+          unzip -p "$APK" "assets/kirazium/mods/dreamdisplays-fabric-1.21.11-1.9.5-kirazium-android-mobilefix1.jar" > /tmp/cinema.jar
+          echo "$PACK_SHA256  /tmp/pack.mrpack" | sha256sum -c -
+          echo "$CINEMA_SHA256  /tmp/cinema.jar" | sha256sum -c -
+          echo "Source build and embedded payload verification succeeded: $APK"

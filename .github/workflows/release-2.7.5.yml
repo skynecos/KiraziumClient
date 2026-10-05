@@ -1,0 +1,221 @@
+name: KiraziumClient 2.7.5 Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/release-2.7.5.yml"
+
+permissions:
+  contents: write
+
+env:
+  EXPECTED_KIRAZIUM_CERT_SHA256: "912671e0b010d902cf148b673c4edf2f5560c86afa2e02f877f2862e0e0de90d"
+  EXPECTED_KIRAZIUM_KEYSTORE_SHA256: "be1bc024531f15fa4cd0a21d3a12681e7c122535e1224ee2573dd98c1e57054d"
+  PACK: app_pojavlauncher/src/main/assets/kirazium/modpacks/sodium-boost-mx-1.21.11.mrpack
+  PACK_SHA256: 08fc89fb4462c19826efc248438190b37c9e202e4108d8183a8a7d1ab06df8f0
+  CINEMA: app_pojavlauncher/src/main/assets/kirazium/mods/dreamdisplays-fabric-1.21.11-1.9.5-kirazium-android-mobilefix1.jar
+  CINEMA_SHA256: 01f4a9a9fbab1fad686d2d62b8210d7dd28686bca3551537e158f15b100f6fc9
+
+jobs:
+  build-release:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    steps:
+      - name: Verify signing secrets exist
+        env:
+          KIRAZIUM_KEYSTORE_B64: ${{ secrets.KIRAZIUM_KEYSTORE_B64 }}
+          KIRAZIUM_KEYSTORE_PASSWORD: ${{ secrets.KIRAZIUM_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "${KIRAZIUM_KEYSTORE_B64:-}"
+          test -n "${KIRAZIUM_KEYSTORE_PASSWORD:-}"
+
+      - name: Checkout source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          submodules: recursive
+
+      - name: Verify release source and exact supplied payloads
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          grep -F 'versionName "2.7.5"' app_pojavlauncher/build.gradle >/dev/null
+          grep -F 'versionCode 270500' app_pojavlauncher/build.gradle >/dev/null
+          echo "$PACK_SHA256  $PACK" | sha256sum -c -
+          echo "$CINEMA_SHA256  $CINEMA" | sha256sum -c -
+          test "$(stat -c%s "$PACK")" = 15709227
+          test "$(stat -c%s "$CINEMA")" = 22983449
+          unzip -p "$PACK" modrinth.index.json | grep -F '"minecraft": "1.21.11"' >/dev/null
+          unzip -p "$PACK" modrinth.index.json | grep -F '"fabric-loader": "0.19.2"' >/dev/null
+          test "$(unzip -Z1 "$PACK" | grep -Ec '^overrides/mods/.*\.jar$')" = 17
+          unzip -p "$CINEMA" fabric.mod.json | grep -F '1.9.5-kirazium-android-mobilefix1' >/dev/null
+          unzip -p "$CINEMA" fabric.mod.json | grep -F '"minecraft": "1.21.11"' >/dev/null
+          grep -F 'public static final String GAME_VERSION = "1.21.11";' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumBootstrap.java >/dev/null
+          grep -F 'public static final String FABRIC_LOADER_VERSION = "0.19.2";' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumBootstrap.java >/dev/null
+          grep -F 'instance.selectedRuntime = "Internal-21";' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/Instances.java >/dev/null
+          grep -F 'mods.kirazium-pre-1.21.11-backup' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumDefaultModpackInstaller.java >/dev/null
+          grep -F 'KiraziumDefaultModpackInstaller.ensureInstalled(this, selectedInstance);' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/LauncherActivity.java >/dev/null
+
+      - name: Download verified 2.1 native-runtime base
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/base-2.1"
+          gh release download kiraziumclient-2.1 --repo "$GITHUB_REPOSITORY" \
+            --pattern 'KiraziumClient-2.1-SIGNED.apk' \
+            --pattern 'KiraziumClient-2.1-SIGNED.apk.sha256' \
+            --dir "$RUNNER_TEMP/base-2.1"
+          BASE_APK="$RUNNER_TEMP/base-2.1/KiraziumClient-2.1-SIGNED.apk"
+          BASE_SUM="$RUNNER_TEMP/base-2.1/KiraziumClient-2.1-SIGNED.apk.sha256"
+          test -s "$BASE_APK"
+          EXPECTED="$(awk '{print $1; exit}' "$BASE_SUM")"
+          test "$(sha256sum "$BASE_APK" | awk '{print $1}')" = "$EXPECTED"
+          echo "BASE_2_1_APK_SHA256=$EXPECTED" >> "$GITHUB_ENV"
+
+      - name: Reuse verified FFmpeg native bundle
+        run: |
+          set -euo pipefail
+          BASE_APK="$RUNNER_TEMP/base-2.1/KiraziumClient-2.1-SIGNED.apk"
+          EXTRACT="$RUNNER_TEMP/base-native"
+          JNI_DIR="app_pojavlauncher/src/main/jniLibs/arm64-v8a"
+          mkdir -p "$EXTRACT" "$JNI_DIR"
+          unzip -q "$BASE_APK" 'lib/arm64-v8a/*.so' -d "$EXTRACT"
+          copied=0
+          for lib in "$EXTRACT"/lib/arm64-v8a/*.so; do
+            name="$(basename "$lib")"
+            case "$name" in
+              libffmpeg.so|libffprobe.so|libav*.so|libsw*.so|libpostproc*.so|libgnutls*.so|libnettle*.so|libhogweed*.so|libgmp*.so|libiconv*.so|libcharset*.so|libtasn1*.so|libunistring*.so|libidn2*.so)
+                test ! -e "$JNI_DIR/$name"
+                cp "$lib" "$JNI_DIR/$name"
+                copied=$((copied + 1))
+                ;;
+            esac
+          done
+          test "$copied" = 9
+          test -s "$JNI_DIR/libffmpeg.so"
+          test -s "$JNI_DIR/libffprobe.so"
+          strings "$JNI_DIR/libavformat.so" | grep -q -- '--enable-gnutls'
+          strings "$JNI_DIR/libavcodec.so" | grep -q -- '--enable-mediacodec'
+          readelf -Ws "$JNI_DIR/libavcodec.so" | grep -q 'av_jni_set_java_vm'
+          python3 tools/embedded-ffmpeg/patch-launcher.py
+
+      - name: Get pinned LTW renderer
+        uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
+        with:
+          repo: MojoLauncher/LTW
+          workflow: android.yml
+          workflow_conclusion: success
+          commit: 3aca75d9f3f05afd0b02a3d8f686084d968fa200
+          name: output-aar
+          path: app_pojavlauncher/libs
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK components
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$SDK_ROOT"
+          SDKMANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -perm -u+x | head -n 1 || true)"
+          fi
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "ndk;29.0.14206865" "platforms;android-36" "build-tools;36.0.0"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+
+      - name: Build KiraziumClient 2.7.5
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          unset ANDROID_NDK_ROOT
+          ./gradlew :app_pojavlauncher:assembleFullRelease --stacktrace
+
+      - name: Verify APK version and bundled payloads
+        run: |
+          set -euo pipefail
+          APK="$(find app_pojavlauncher/build/outputs/apk/full/release -type f -name '*.apk' | head -n 1)"
+          test -s "$APK"
+          mkdir -p verify unsigned out
+          AAPT="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name aapt | sort -V | tail -n 1)"
+          "$AAPT" dump badging "$APK" | tee verify/aapt-badging.txt
+          grep -F "versionName='2.7.5'" verify/aapt-badging.txt >/dev/null
+          grep -F "versionCode='270500'" verify/aapt-badging.txt >/dev/null
+          unzip -p "$APK" "assets/kirazium/modpacks/sodium-boost-mx-1.21.11.mrpack" > verify/pack.mrpack
+          unzip -p "$APK" "assets/kirazium/mods/dreamdisplays-fabric-1.21.11-1.9.5-kirazium-android-mobilefix1.jar" > verify/cinema.jar
+          echo "$PACK_SHA256  verify/pack.mrpack" | sha256sum -c -
+          echo "$CINEMA_SHA256  verify/cinema.jar" | sha256sum -c -
+          for name in libffmpeg.so libffprobe.so libavformat.so libavcodec.so libavdevice.so libavutil.so; do
+            unzip -p "$APK" "lib/arm64-v8a/$name" > "verify/$name"
+            test -s "verify/$name"
+          done
+          strings verify/libavformat.so | grep -q -- '--enable-gnutls'
+          strings verify/libavcodec.so | grep -q -- '--enable-jni'
+          cp "$APK" unsigned/KiraziumClient-2.7.5-unsigned.apk
+
+      - name: Prepare production signing key
+        env:
+          KIRAZIUM_KEYSTORE_B64: ${{ secrets.KIRAZIUM_KEYSTORE_B64 }}
+          KIRAZIUM_KEYSTORE_PASSWORD: ${{ secrets.KIRAZIUM_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          SIGNING_DIR="$RUNNER_TEMP/kirazium-signing"
+          mkdir -p "$SIGNING_DIR"
+          chmod 700 "$SIGNING_DIR"
+          printf '%s' "$KIRAZIUM_KEYSTORE_B64" | tr -d '[:space:]' | base64 --decode > "$SIGNING_DIR/kirazium-release.jks"
+          chmod 600 "$SIGNING_DIR/kirazium-release.jks"
+          test "$(sha256sum "$SIGNING_DIR/kirazium-release.jks" | awk '{print $1}')" = "$EXPECTED_KIRAZIUM_KEYSTORE_SHA256"
+          PASSWORD="$(printf '%s' "$KIRAZIUM_KEYSTORE_PASSWORD" | tr -d '\r\n')"
+          ACTUAL="$(keytool -list -v -keystore "$SIGNING_DIR/kirazium-release.jks" -storepass "$PASSWORD" -alias kirazium 2>/dev/null | awk -F': ' '/SHA256:/{gsub(":", "", $2); print tolower($2); exit}')"
+          test "$ACTUAL" = "$EXPECTED_KIRAZIUM_CERT_SHA256"
+
+      - name: Sign and verify release APK
+        env:
+          KIRAZIUM_KEYSTORE_PASSWORD: ${{ secrets.KIRAZIUM_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          APKSIGNER="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          export KIRAZIUM_SIGNING_PASSWORD="$(printf '%s' "$KIRAZIUM_KEYSTORE_PASSWORD" | tr -d '\r\n')"
+          "$APKSIGNER" sign --ks "$RUNNER_TEMP/kirazium-signing/kirazium-release.jks" \
+            --ks-key-alias kirazium --ks-pass env:KIRAZIUM_SIGNING_PASSWORD \
+            --key-pass env:KIRAZIUM_SIGNING_PASSWORD \
+            --out out/KiraziumClient-2.7.5-SIGNED.apk unsigned/KiraziumClient-2.7.5-unsigned.apk
+          VERIFY="$($APKSIGNER verify --verbose --print-certs out/KiraziumClient-2.7.5-SIGNED.apk)"
+          printf '%s\n' "$VERIFY"
+          CERT="$(printf '%s\n' "$VERIFY" | awk -F': ' '/certificate SHA-256 digest/{value=$NF; gsub(":", "", value); print tolower(value); exit}')"
+          test "$CERT" = "$EXPECTED_KIRAZIUM_CERT_SHA256"
+          sha256sum out/KiraziumClient-2.7.5-SIGNED.apk > out/KiraziumClient-2.7.5-SIGNED.apk.sha256
+
+      - name: Publish KiraziumClient 2.7.5
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="kiraziumclient-2.7.5"
+          printf 'release=2.7.5\nsource_commit=%s\nsource_branch=main\nworkflow=release-2.7.5\nminecraft=1.21.11\nfabric_loader=0.19.2\nmodpack_sha256=%s\ndreamdisplays_sha256=%s\nserver_changed=no\nprevious_mods_backup=enabled\n' "$GITHUB_SHA" "$PACK_SHA256" "$CINEMA_SHA256" > out/BUILD_INFO-2.7.5.txt
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "KiraziumClient 2.7.5" \
+              --notes "KiraziumClient 2.7.5 changes the launcher's default Kirazium profile to the supplied Sodium Boost MX Fabric 1.21.11 modpack and bundles the supplied Dream Displays 1.21.11 Android MOBILEFIX1 build. Existing Kirazium profiles migrate to Fabric Loader 0.19.2 and Java 21. Their previous mods folder is retained as a recoverable backup. The Minecraft server is unchanged."
+          fi
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" \
+            out/KiraziumClient-2.7.5-SIGNED.apk \
+            out/KiraziumClient-2.7.5-SIGNED.apk.sha256 \
+            out/BUILD_INFO-2.7.5.txt --clobber
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | tee /tmp/assets.txt
+          grep -Fx 'KiraziumClient-2.7.5-SIGNED.apk' /tmp/assets.txt >/dev/null
+          grep -Fx 'KiraziumClient-2.7.5-SIGNED.apk.sha256' /tmp/assets.txt >/dev/null
+          grep -Fx 'BUILD_INFO-2.7.5.txt' /tmp/assets.txt >/dev/null
+
+      - name: Remove signing material
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/kirazium-signing"

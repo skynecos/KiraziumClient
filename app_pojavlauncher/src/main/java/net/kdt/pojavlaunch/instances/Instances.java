@@ -23,6 +23,8 @@ public class Instances {
             "kiraziumRendererInheritanceV2";
     private static final String PREF_KEY_ISOLATED_INSTANCE_DATA_V1 =
             "kiraziumIsolatedInstanceDataV1";
+    private static final String PREF_KEY_DEFAULT_12111_V1 =
+            "kiraziumDefault12111V1";
     private static final String LEGACY_KIRAZIUM_RENDERER = "opengles3_ltw";
 
     public final List<DisplayInstance> list;
@@ -101,6 +103,7 @@ public class Instances {
         }
         migrateLegacyRendererDefaults();
         migrateToIsolatedInstanceData();
+        migrateKiraziumDefaultTo12111(instances);
         KiraziumBootstrap.ensureClientFiles(instances);
         return new Instances(Collections.unmodifiableList(instances), selectionIndex[0]);
     }
@@ -189,6 +192,39 @@ public class Instances {
         }
     }
 
+    /** Moves only the launcher-managed Kirazium profile to the bundled Fabric 1.21.11 pack. */
+    private static void migrateKiraziumDefaultTo12111(List<DisplayInstance> displayInstances) {
+        if (LauncherPreferences.DEFAULT_PREF == null ||
+                LauncherPreferences.DEFAULT_PREF.getBoolean(PREF_KEY_DEFAULT_12111_V1, false)) {
+            return;
+        }
+
+        try {
+            String versionId = KiraziumBootstrap.installFabricProfile();
+            int migratedCount = 0;
+            for (Instance instance : loadInstances(Instance.class, null)) {
+                if (!KiraziumBootstrap.PROFILE_NAME.equals(instance.name)) continue;
+                instance.versionId = versionId;
+                instance.selectedRuntime = "Internal-21";
+                instance.sharedData = false;
+                instance.write();
+                migratedCount++;
+            }
+            for (DisplayInstance instance : displayInstances) {
+                if (KiraziumBootstrap.PROFILE_NAME.equals(instance.name)) {
+                    instance.versionId = versionId;
+                }
+            }
+            LauncherPreferences.DEFAULT_PREF.edit()
+                    .putBoolean(PREF_KEY_DEFAULT_12111_V1, true)
+                    .apply();
+            Log.i("Instances", "Migrated " + migratedCount +
+                    " Kirazium default profile(s) to Fabric 1.21.11");
+        } catch (IOException exception) {
+            Log.w("Instances", "Could not migrate Kirazium default profile to 1.21.11", exception);
+        }
+    }
+
     private static File findNewInstanceRoot(String prefix) {
         File instanceRoot;
         do {
@@ -236,7 +272,7 @@ public class Instances {
             instance.versionId = versionId;
             // Renderer follows the global launcher choice unless the user explicitly overrides it.
             instance.renderer = null;
-            instance.selectedRuntime = "Internal-25";
+            instance.selectedRuntime = "Internal-21";
         }, "kirazium");
     }
 

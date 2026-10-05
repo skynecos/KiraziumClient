@@ -33,10 +33,10 @@ import java.util.Map;
 public final class KiraziumBootstrap {
     public static final String PROFILE_NAME = "Kirazium";
     public static final String PROFILE_ICON = "kirazium";
-    public static final String GAME_VERSION = "26.1.2";
+    public static final String GAME_VERSION = "1.21.11";
 
     private static final String TAG = "KiraziumBootstrap";
-    private static final String FABRIC_LOADER_VERSION = "0.19.3";
+    public static final String FABRIC_LOADER_VERSION = "0.19.2";
     private static final String SERVER_NAME = "Kirazium";
     private static final String SERVER_ADDRESS = "play.kirazium.com";
     private static final String MODRINTH_VERSION_API =
@@ -66,14 +66,14 @@ public final class KiraziumBootstrap {
     private static final String LANGUAGE_MARKER = ".kirazium-language-tr-v1";
     private static final String OPTIMIZATION_MARKER = ".kirazium-low-end-v2";
     private static final String EMBEDDED_CINEMA_FILENAME =
-            "dreamdisplays-fabric-26.1.2-1.9.5-kirazium-android-stallfix1.jar";
+            "dreamdisplays-fabric-1.21.11-1.9.5-kirazium-android-mobilefix1.jar";
     private static final String EMBEDDED_CINEMA_ASSET =
             "kirazium/mods/" + EMBEDDED_CINEMA_FILENAME;
     private static final String EMBEDDED_CINEMA_SHA256 =
-            "918872694b9fe437b6c412dda287e717d33b654a1bf8885af0ceea0ed38caab1";
-    private static final long EMBEDDED_CINEMA_SIZE = 23_595_235L;
+            "01f4a9a9fbab1fad686d2d62b8210d7dd28686bca3551537e158f15b100f6fc9";
+    private static final long EMBEDDED_CINEMA_SIZE = 22_983_449L;
     private static final String EMBEDDED_CINEMA_MARKER =
-            ".kirazium-dreamdisplays-stallfix1";
+            ".kirazium-dreamdisplays-1.21.11-mobilefix1";
     public static final String LOW_GRAPHICS_PREFERENCE = "kiraziumLowGraphicsMode";
     private static final String BACKUP_RAM_PREFERENCE = "kiraziumNormalRamAllocation";
     private static final String RAM_INDEPENDENCE_MARKER =
@@ -186,12 +186,12 @@ public final class KiraziumBootstrap {
     }
 
     public static String installFabricProfile() throws IOException {
-        try {
-            return FabriclikeUtils.FABRIC_UTILS.install(GAME_VERSION, FABRIC_LOADER_VERSION);
-        } catch (IOException exception) {
-            Log.w(TAG, "Fabric profile could not be downloaded; using vanilla as fallback", exception);
-            return GAME_VERSION;
+        String versionId = FabriclikeUtils.FABRIC_UTILS.install(
+                GAME_VERSION, FABRIC_LOADER_VERSION);
+        if (versionId == null || versionId.trim().isEmpty()) {
+            throw new IOException("Fabric 1.21.11 profile could not be installed");
         }
+        return versionId;
     }
 
     public static void ensureClientFiles(List<DisplayInstance> instances) {
@@ -204,8 +204,6 @@ public final class KiraziumBootstrap {
                 ensureLowEndOptions(gameDirectory);
                 ensureTurkishLanguage(gameDirectory);
                 ensureLowEndOptimizations(gameDirectory);
-                ensurePerformanceMods(gameDirectory);
-                ensureResourcePackCompatibility(gameDirectory);
             } catch (Exception exception) {
                 // Do not make the launcher unusable when a third-party download is temporarily unavailable.
                 Log.w(TAG, "Kirazium client preparation will be retried for " +
