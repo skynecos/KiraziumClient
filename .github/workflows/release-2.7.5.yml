@@ -145,6 +145,11 @@ jobs:
           set -euo pipefail
           APK="$(find app_pojavlauncher/build/outputs/apk/full/release -type f -name '*.apk' | head -n 1)"
           test -s "$APK"
+          ZIPALIGN="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name zipalign | sort -V | tail -n 1)"
+          test -x "$ZIPALIGN"
+          mkdir -p aligned
+          "$ZIPALIGN" -f -p 4 "$APK" aligned/KiraziumClient-2.7.5-aligned.apk
+          APK="aligned/KiraziumClient-2.7.5-aligned.apk"
           mkdir -p verify unsigned out
           AAPT="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name aapt | sort -V | tail -n 1)"
           "$AAPT" dump badging "$APK" | tee verify/aapt-badging.txt
