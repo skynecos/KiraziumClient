@@ -1,0 +1,68 @@
+name: APK install audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/apk-install-audit.yml']
+permissions:
+  contents: read
+jobs:
+  install:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Download published packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p apk-audit
+          for version in 2.7.4 2.7.6; do
+            gh release download "kiraziumclient-$version" --repo "$GITHUB_REPOSITORY" --pattern "KiraziumClient-$version-SIGNED.apk" --dir apk-audit
+          done
+          sha256sum apk-audit/*.apk
+      - name: Check APK parsing, compression and alignment
+        run: |
+          SDK="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+          AAPT="$(find "$SDK/build-tools" -name aapt | sort -V | tail -1)"
+          SIGNER="$(find "$SDK/build-tools" -name apksigner | sort -V | tail -1)"
+          ALIGN="$(find "$SDK/build-tools" -name zipalign | sort -V | tail -1)"
+          for apk in apk-audit/*.apk; do
+            "$AAPT" dump badging "$apk" | head -6
+            "$AAPT" dump xmltree "$apk" AndroidManifest.xml | grep -E 'extractNativeLibs|debuggable|sharedUserId|isSplitRequired' || true
+            "$SIGNER" verify --verbose --print-certs "$apk"
+            "$ALIGN" -c -P 16 4 "$apk" || true
+          done
+          python3 - <<'PY'
+          import zipfile,struct,glob
+          for p in glob.glob('apk-audit/*.apk'):
+              print('ZIP AUDIT',p)
+              with zipfile.ZipFile(p) as z,open(p,'rb') as f:
+                  print('CRC',z.testzip(),'duplicates',len(z.namelist())-len(set(z.namelist())))
+                  for n in z.infolist():
+                      if n.filename=='resources.arsc' or n.filename.startswith('lib/') and not n.filename.endswith('.so'):
+                          f.seek(n.header_offset+26);a,b=struct.unpack('<HH',f.read(4))
+                          print(n.filename,'compression',n.compress_type,'offset',n.header_offset+30+a+b,'size',n.file_size)
+          PY
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install on clean Android 16 emulator
+        uses: ReactiveCircus/android-emulator-runner@4c44018e59b437e86cdfc41da381398f93ed8808
+        with:
+          api-level: 36
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 2048
+          script: |
+            adb shell getprop ro.build.version.release
+            adb shell getconf PAGE_SIZE
+            adb install apk-audit/KiraziumClient-2.7.6-SIGNED.apk > apk-audit/install-2.7.6.txt 2>&1 || true
+            cat apk-audit/install-2.7.6.txt
+            adb uninstall com.kirazium.launcher || true
+            adb install apk-audit/KiraziumClient-2.7.4-SIGNED.apk > apk-audit/install-2.7.4.txt 2>&1 || true
+            cat apk-audit/install-2.7.4.txt
+            adb logcat -d -v brief | grep -Ei 'PackageManager|PackageInstaller|NativeLibraryHelper|PackageParser|INSTALL_FAILED|INSTALL_PARSE' | tail -150
