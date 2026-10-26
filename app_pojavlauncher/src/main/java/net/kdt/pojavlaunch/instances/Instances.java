@@ -24,7 +24,7 @@ public class Instances {
     private static final String PREF_KEY_ISOLATED_INSTANCE_DATA_V1 =
             "kiraziumIsolatedInstanceDataV1";
     private static final String PREF_KEY_DEFAULT_12111_V1 =
-            "kiraziumDefault12111V1";
+            "kiraziumDefault12111Loader0195V2";
     private static final String LEGACY_KIRAZIUM_RENDERER = "opengles3_ltw";
 
     public final List<DisplayInstance> list;

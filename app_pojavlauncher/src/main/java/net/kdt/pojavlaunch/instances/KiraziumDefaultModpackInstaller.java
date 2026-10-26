@@ -26,15 +26,15 @@ public final class KiraziumDefaultModpackInstaller {
     private static final String PACK_ASSET =
             "kirazium/modpacks/sodium-boost-mx-1.21.11.mrpack";
     private static final String PACK_SHA256 =
-            "08fc89fb4462c19826efc248438190b37c9e202e4108d8183a8a7d1ab06df8f0";
-    private static final long PACK_SIZE = 15_709_227L;
+            "5dbf39d0f8295cdbdc4077a4e06aa0e3a9f81dac5d1182b3b9cb4215caafff65";
+    private static final long PACK_SIZE = 15_703_050L;
     private static final String CINEMA_ASSET =
-            "kirazium/mods/dreamdisplays-fabric-1.21.11-1.9.5-kirazium-android-mobilefix1.jar";
+            "kirazium/mods/dreamdisplays-fabric-1.21.11-1.10.4-kirazium-vtt1.jar";
     private static final String CINEMA_FILE =
-            "dreamdisplays-fabric-1.21.11-1.9.5-kirazium-android-mobilefix1.jar";
+            "dreamdisplays-fabric-1.21.11-1.10.4-kirazium-vtt1.jar";
     private static final String CINEMA_SHA256 =
-            "01f4a9a9fbab1fad686d2d62b8210d7dd28686bca3551537e158f15b100f6fc9";
-    private static final long CINEMA_SIZE = 22_983_449L;
+            "b1db4768aab5ebab3e8fa81b862ca955d71e7cf77d878547af1b4215a053738c";
+    private static final long CINEMA_SIZE = 26_976_581L;
     private static final String MARKER_NAME = ".kirazium-default-1.21.11-v1";
 
     private KiraziumDefaultModpackInstaller() {}
@@ -45,8 +45,11 @@ public final class KiraziumDefaultModpackInstaller {
 
         File gameDirectory = instance.getGameDirectory();
         File marker = new File(gameDirectory, MARKER_NAME);
-        File cinema = new File(new File(gameDirectory, "mods"), CINEMA_FILE);
-        if (marker.isFile() && isExact(cinema, CINEMA_SIZE, CINEMA_SHA256)) return;
+        if (marker.isFile()) {
+            // Existing profiles only need the cinema update; keep their mods and settings.
+            KiraziumCinemaInstaller.installInto(context, gameDirectory);
+            return;
+        }
 
         FileUtils.ensureDirectory(gameDirectory);
         File workDirectory = new File(gameDirectory, ".kirazium-pack-install-v1");
@@ -83,7 +86,7 @@ public final class KiraziumDefaultModpackInstaller {
 
             Tools.write(marker,
                     "minecraft=1.21.11\n" +
-                    "fabric-loader=0.19.2\n" +
+                    "fabric-loader=0.19.5\n" +
                     "modpack-sha256=" + PACK_SHA256 + "\n" +
                     "dreamdisplays-sha256=" + CINEMA_SHA256 + "\n");
             Log.i(TAG, "Installed exact bundled Fabric 1.21.11 modpack and Dream Displays");

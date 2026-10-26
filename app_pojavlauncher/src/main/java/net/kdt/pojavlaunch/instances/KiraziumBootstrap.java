@@ -36,7 +36,7 @@ public final class KiraziumBootstrap {
     public static final String GAME_VERSION = "1.21.11";
 
     private static final String TAG = "KiraziumBootstrap";
-    public static final String FABRIC_LOADER_VERSION = "0.19.2";
+    public static final String FABRIC_LOADER_VERSION = "0.19.5";
     private static final String SERVER_NAME = "Kirazium";
     private static final String SERVER_ADDRESS = "play.kirazium.com";
     private static final String MODRINTH_VERSION_API =
@@ -66,14 +66,14 @@ public final class KiraziumBootstrap {
     private static final String LANGUAGE_MARKER = ".kirazium-language-tr-v1";
     private static final String OPTIMIZATION_MARKER = ".kirazium-low-end-v2";
     private static final String EMBEDDED_CINEMA_FILENAME =
-            "dreamdisplays-fabric-1.21.11-1.9.5-kirazium-android-mobilefix1.jar";
+            "dreamdisplays-fabric-1.21.11-1.10.4-kirazium-vtt1.jar";
     private static final String EMBEDDED_CINEMA_ASSET =
             "kirazium/mods/" + EMBEDDED_CINEMA_FILENAME;
     private static final String EMBEDDED_CINEMA_SHA256 =
-            "01f4a9a9fbab1fad686d2d62b8210d7dd28686bca3551537e158f15b100f6fc9";
-    private static final long EMBEDDED_CINEMA_SIZE = 22_983_449L;
+            "b1db4768aab5ebab3e8fa81b862ca955d71e7cf77d878547af1b4215a053738c";
+    private static final long EMBEDDED_CINEMA_SIZE = 26_976_581L;
     private static final String EMBEDDED_CINEMA_MARKER =
-            ".kirazium-dreamdisplays-1.21.11-mobilefix1";
+            ".kirazium-dreamdisplays-1.21.11-vtt1";
     public static final String LOW_GRAPHICS_PREFERENCE = "kiraziumLowGraphicsMode";
     private static final String BACKUP_RAM_PREFERENCE = "kiraziumNormalRamAllocation";
     private static final String RAM_INDEPENDENCE_MARKER =
@@ -85,7 +85,7 @@ public final class KiraziumBootstrap {
     private KiraziumBootstrap() {
     }
 
-    /** Installs the phone-tested DreamDisplays build carried inside the launcher APK. */
+    /** Installs the bundled DreamDisplays build carried inside the launcher APK. */
     public static void ensureEmbeddedCinemaMod(Context context) {
         if (context == null || Tools.DIR_GAME_NEW == null) return;
 

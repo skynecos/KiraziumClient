@@ -22,11 +22,15 @@ import java.util.Set;
 public final class KiraziumCinemaInstaller {
     private static final String TAG = "KiraziumCinemaInstaller";
     private static final String FILE_NAME =
-            "dreamdisplays-fabric-1.21.11-1.9.5-kirazium-android-mobilefix1.jar";
+            "dreamdisplays-fabric-1.21.11-1.10.4-kirazium-vtt1.jar";
     private static final String ASSET_PATH = "kirazium/mods/" + FILE_NAME;
     private static final String SHA256 =
-            "01f4a9a9fbab1fad686d2d62b8210d7dd28686bca3551537e158f15b100f6fc9";
-    private static final long SIZE = 22_983_449L;
+            "b1db4768aab5ebab3e8fa81b862ca955d71e7cf77d878547af1b4215a053738c";
+    private static final long SIZE = 26_976_581L;
+
+    private static final String LEGACY_FILE_NAME = "dreamdisplays-fabric-1.21.11-1.9.5-kirazium-android-mobilefix1.jar";
+    private static final String LEGACY_SHA256 = "01f4a9a9fbab1fad686d2d62b8210d7dd28686bca3551537e158f15b100f6fc9";
+    private static final long LEGACY_SIZE = 22_983_449L;
 
     private KiraziumCinemaInstaller() {}
 
@@ -55,7 +59,7 @@ public final class KiraziumCinemaInstaller {
         }
     }
 
-    private static void installInto(Context context, File gameDirectory) throws IOException {
+    static void installInto(Context context, File gameDirectory) throws IOException {
         File modsDirectory = new File(gameDirectory, "mods");
         FileUtils.ensureDirectory(modsDirectory);
 
@@ -73,7 +77,10 @@ public final class KiraziumCinemaInstaller {
         }
 
         // No manual override exists. Keep the exact managed fallback if it is already installed.
-        if (isExact(destination)) return;
+        if (isExact(destination)) {
+            removeLegacyManaged(modsDirectory);
+            return;
+        }
 
         // If a file with the managed filename exists but is not our exact payload, treat it as user-owned.
         // Never overwrite an unknown/custom DreamDisplays build merely because the filename matches.
@@ -108,7 +115,8 @@ public final class KiraziumCinemaInstaller {
             throw new IOException("Could not activate DreamDisplays mod");
         }
 
-        Log.i(TAG, "Installed exact DreamDisplays stallfix1 fallback into "
+        removeLegacyManaged(modsDirectory);
+        Log.i(TAG, "Installed exact DreamDisplays VTT1 fallback into "
                 + destination.getAbsolutePath());
     }
 
@@ -124,6 +132,7 @@ public final class KiraziumCinemaInstaller {
 
             // The one exact launcher-managed fallback is not a manual override.
             if (file.equals(managedDestination) && isExact(file)) continue;
+            if (isLegacyManaged(file)) continue;
             return file;
         }
         return null;
@@ -132,7 +141,7 @@ public final class KiraziumCinemaInstaller {
     private static void disableManagedEmbedded(File managedDestination) throws IOException {
         if (!isExact(managedDestination)) return;
         if (managedDestination.delete()) {
-            Log.i(TAG, "Removed launcher-managed stallfix1 because a manual DreamDisplays override exists.");
+            Log.i(TAG, "Removed launcher-managed VTT1 because a manual DreamDisplays override exists.");
             return;
         }
 
@@ -143,7 +152,19 @@ public final class KiraziumCinemaInstaller {
         if (!managedDestination.renameTo(disabled)) {
             throw new IOException("Could not disable launcher-managed DreamDisplays fallback");
         }
-        Log.i(TAG, "Disabled launcher-managed stallfix1 because a manual DreamDisplays override exists.");
+        Log.i(TAG, "Disabled launcher-managed VTT1 because a manual DreamDisplays override exists.");
+    }
+
+    private static boolean isLegacyManaged(File file) throws IOException {
+        return file.getName().equals(LEGACY_FILE_NAME) && file.isFile() &&
+                file.length() == LEGACY_SIZE && LEGACY_SHA256.equals(sha256(file));
+    }
+
+    private static void removeLegacyManaged(File modsDirectory) throws IOException {
+        File legacy = new File(modsDirectory, LEGACY_FILE_NAME);
+        if (isLegacyManaged(legacy) && !legacy.delete()) {
+            throw new IOException("Eski DreamDisplays modu kaldirilamadi");
+        }
     }
 
     private static boolean isExact(File file) throws IOException {
