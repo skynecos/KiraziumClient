@@ -46,8 +46,8 @@ jobs:
           test "$(unzip -Z1 "$PACK" | grep -Ec '^overrides/mods/.*\.jar$')" = 17
           unzip -p "$CINEMA" fabric.mod.json | grep -F '1.10.4-kirazium-vtt1' >/dev/null
           unzip -p "$CINEMA" fabric.mod.json | grep -F '"minecraft": "1.21.11"' >/dev/null
-          grep -F 'versionName "2.7.6"' app_pojavlauncher/build.gradle >/dev/null
-          grep -F 'versionCode 270600' app_pojavlauncher/build.gradle >/dev/null
+          grep -F 'versionName "2.7.7"' app_pojavlauncher/build.gradle >/dev/null
+          grep -F 'versionCode 270700' app_pojavlauncher/build.gradle >/dev/null
           grep -F 'public static final String GAME_VERSION = "1.21.11";' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumBootstrap.java >/dev/null
           grep -F 'public static final String FABRIC_LOADER_VERSION = "0.19.5";' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumBootstrap.java >/dev/null
           grep -F 'instance.selectedRuntime = "Internal-21";' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/Instances.java >/dev/null
@@ -95,8 +95,8 @@ jobs:
           APK="$(find app_pojavlauncher/build/outputs/apk/full/release -type f -name '*.apk' | head -n 1)"
           test -s "$APK"
           AAPT="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          "$AAPT" dump badging "$APK" | grep -F "versionCode='270600'" >/dev/null
-          "$AAPT" dump badging "$APK" | grep -F "versionName='2.7.6'" >/dev/null
+          "$AAPT" dump badging "$APK" | grep -F "versionCode='270700'" >/dev/null
+          "$AAPT" dump badging "$APK" | grep -F "versionName='2.7.7'" >/dev/null
           unzip -p "$APK" "assets/kirazium/modpacks/sodium-boost-mx-1.21.11.mrpack" > /tmp/pack.mrpack
           unzip -p "$APK" "assets/kirazium/mods/dreamdisplays-fabric-1.21.11-1.10.4-kirazium-vtt1.jar" > /tmp/cinema.jar
           echo "$PACK_SHA256  /tmp/pack.mrpack" | sha256sum -c -

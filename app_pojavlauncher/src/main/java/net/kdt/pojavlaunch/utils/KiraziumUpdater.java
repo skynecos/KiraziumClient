@@ -3,6 +3,7 @@ package net.kdt.pojavlaunch.utils;
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.ClipData;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -205,6 +206,7 @@ public final class KiraziumUpdater {
                         }
                     }
                     fileOutput.flush();
+                    fileOutput.getFD().sync();
 
                     if (downloaded != assets.expectedSize) {
                         throw new SecurityException("APK eksik veya fazla byte içeriyor.");
@@ -358,6 +360,7 @@ public final class KiraziumUpdater {
                     activity.getPackageName() + ".updateprovider", apk);
             Intent installIntent = new Intent(Intent.ACTION_VIEW);
             installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
+            installIntent.setClipData(ClipData.newRawUri("Kirazium update", apkUri));
             installIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             prefs(activity).edit().remove(KEY_PENDING_APK).apply();
             activity.startActivity(installIntent);
