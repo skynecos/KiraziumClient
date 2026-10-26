@@ -6,11 +6,17 @@ repo = Path(__file__).resolve().parents[1]
 main = repo / 'app_pojavlauncher/src/main'
 package = 'net/kdt/pojavlaunch/instances'
 old_name = 'dreamdisplays-fabric-1.21.11-1.9.5-kirazium-android-mobilefix1.jar'
-new_name = 'dreamdisplays-fabric-1.21.11-1.10.4-kirazium-vtt1.jar'
+new_name = 'dreamdisplays-fabric-1.21.11-1.10.4-kirazium-android-vtt1.jar'
 if subprocess.run(['git','cat-file','-e','43fae062d82184b9300ae1b40d61cf3fbd5fe3ed^{commit}'],cwd=repo,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode:
     subprocess.run(['git','fetch','--depth=1','origin','43fae062d82184b9300ae1b40d61cf3fbd5fe3ed'],cwd=repo,check=True)
 old = subprocess.check_output(['git','show','43fae062d82184b9300ae1b40d61cf3fbd5fe3ed:app_pojavlauncher/src/main/assets/kirazium/mods/'+old_name],cwd=repo)
 assert hashlib.sha256(old).hexdigest() == '01f4a9a9fbab1fad686d2d62b8210d7dd28686bca3551537e158f15b100f6fc9'
+pc_name = 'dreamdisplays-fabric-1.21.11-1.10.4-kirazium-vtt1.jar'
+pc_commit = '30d0d4bb0bd8dd39e2f05e36ff95b649449c01f6'
+if subprocess.run(['git','cat-file','-e',pc_commit+'^{commit}'],cwd=repo,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode:
+    subprocess.run(['git','fetch','--depth=1','origin',pc_commit],cwd=repo,check=True)
+pc = subprocess.check_output(['git','show',pc_commit+':app_pojavlauncher/src/main/assets/kirazium/mods/'+pc_name],cwd=repo)
+assert hashlib.sha256(pc).hexdigest() == 'b1db4768aab5ebab3e8fa81b862ca955d71e7cf77d878547af1b4215a053738c'
 with tempfile.TemporaryDirectory(prefix='kirazium-cinema-test-') as td:
     root = Path(td)
     def source(name, content):
@@ -47,6 +53,12 @@ public class CinemaUpgradeTest {
   check(!Files.exists(existing.resolve("mods.kirazium-pre-1.21.11-backup")),"pack unnecessarily reinstalled");
   KiraziumDefaultModpackInstaller.ensureInstalled(context,new Instance(existing.toFile()));
   check(Files.list(mods).filter(p->p.toString().endsWith(".jar")).count()==2,"duplicate mod on repeat");
+  Path pcRoot=root.resolve("pc-upgrade"),pcMods=pcRoot.resolve("mods"); Files.createDirectories(pcMods);
+  Files.copy(Path.of(args[5]),pcMods.resolve(args[6])); Files.writeString(pcRoot.resolve(".kirazium-default-1.21.11-v1"),"old");
+  Files.writeString(pcMods.resolve("user-mod.jar"),"keep");
+  KiraziumDefaultModpackInstaller.ensureInstalled(context,new Instance(pcRoot.toFile()));
+  check(Files.exists(pcMods.resolve(newName))&&!Files.exists(pcMods.resolve(args[6])),"2.7.6 desktop JAR not replaced");
+  check(Files.readString(pcMods.resolve("user-mod.jar")).equals("keep"),"2.7.6 user mod changed");
   Path custom=root.resolve("custom/mods"); Files.createDirectories(custom); Files.writeString(custom.resolve(oldName),"user-build");
   KiraziumCinemaInstaller.installInto(context,custom.getParent().toFile());
   check(Files.readString(custom.resolve(oldName)).equals("user-build"),"custom build overwritten"); check(!Files.exists(custom.resolve(newName)),"duplicate manual override");
@@ -60,8 +72,9 @@ public class CinemaUpgradeTest {
  }
 }''')
     (root/'old.jar').write_bytes(old)
+    (root/'pc.jar').write_bytes(pc)
     java_home=Path(os.environ.get('JAVA_HOME',''))
     javac=str(java_home/'bin/javac') if (java_home/'bin/javac').exists() else shutil.which('javac')
     java=str(java_home/'bin/java') if (java_home/'bin/java').exists() else shutil.which('java')
     subprocess.run([javac,'-encoding','UTF-8','-d',str(root/'classes'),*[str(p) for p in (root/'src').rglob('*.java')]],check=True)
-    subprocess.run([java,'-cp',str(root/'classes'),'net.kdt.pojavlaunch.instances.CinemaUpgradeTest',str(root/'data'),str(main/'assets'),old_name,new_name,str(root/'old.jar')],check=True)
+    subprocess.run([java,'-cp',str(root/'classes'),'net.kdt.pojavlaunch.instances.CinemaUpgradeTest',str(root/'data'),str(main/'assets'),old_name,new_name,str(root/'old.jar'),str(root/'pc.jar'),pc_name],check=True)

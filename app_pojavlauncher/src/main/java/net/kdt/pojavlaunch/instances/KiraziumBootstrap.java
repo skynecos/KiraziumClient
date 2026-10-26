@@ -66,12 +66,12 @@ public final class KiraziumBootstrap {
     private static final String LANGUAGE_MARKER = ".kirazium-language-tr-v1";
     private static final String OPTIMIZATION_MARKER = ".kirazium-low-end-v2";
     private static final String EMBEDDED_CINEMA_FILENAME =
-            "dreamdisplays-fabric-1.21.11-1.10.4-kirazium-vtt1.jar";
+            "dreamdisplays-fabric-1.21.11-1.10.4-kirazium-android-vtt1.jar";
     private static final String EMBEDDED_CINEMA_ASSET =
             "kirazium/mods/" + EMBEDDED_CINEMA_FILENAME;
     private static final String EMBEDDED_CINEMA_SHA256 =
-            "b1db4768aab5ebab3e8fa81b862ca955d71e7cf77d878547af1b4215a053738c";
-    private static final long EMBEDDED_CINEMA_SIZE = 26_976_581L;
+            "827aac742642f428c9709a63852e8dba3ff96757f3ba353a3932f0fa1a39db10";
+    private static final long EMBEDDED_CINEMA_SIZE = 24_447_989L;
     private static final String EMBEDDED_CINEMA_MARKER =
             ".kirazium-dreamdisplays-1.21.11-vtt1";
     public static final String LOW_GRAPHICS_PREFERENCE = "kiraziumLowGraphicsMode";

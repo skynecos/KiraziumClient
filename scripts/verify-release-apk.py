@@ -28,14 +28,21 @@ def verify(path):
         raw.seek(apk.start_dir-size-8)
         assert struct.unpack('<Q',raw.read(8))[0]==size, 'Malformed APK signing block'
         cinema=[n for n in names if n.startswith('assets/kirazium/mods/dreamdisplays-') and n.endswith('.jar')]
-        expected='assets/kirazium/mods/dreamdisplays-fabric-1.21.11-1.10.4-kirazium-vtt1.jar'
+        expected='assets/kirazium/mods/dreamdisplays-fabric-1.21.11-1.10.4-kirazium-android-vtt1.jar'
         assert cinema==[expected], 'Unexpected or duplicate bundled cinema JAR'
         data=apk.read(expected)
-        assert hashlib.sha256(data).hexdigest()=='b1db4768aab5ebab3e8fa81b862ca955d71e7cf77d878547af1b4215a053738c', 'Wrong cinema payload'
+        assert hashlib.sha256(data).hexdigest()=='827aac742642f428c9709a63852e8dba3ff96757f3ba353a3932f0fa1a39db10', 'Wrong cinema payload'
         with zipfile.ZipFile(io.BytesIO(data)) as jar:
             assert jar.testzip() is None, 'Cinema JAR CRC failure'
+            expected_natives = {
+                'dreamdisplays-natives/linux-aarch64/libdreamdisplays_lav.so': '7e644e354f0935ce46a3e0882f8b47e765bbcc1e76ca162bf8f30ad09ac0bbfa',
+                'dreamdisplays-natives/linux-aarch64/libdreamdisplays_native.so': '82c123e930dde8e42bc2897b20c9f6ad9e864d2de7ebff5cab8b848089f930ab'
+            }
+            for native, digest in expected_natives.items():
+                assert hashlib.sha256(jar.read(native)).hexdigest() == digest, 'Desktop native payload in mobile JAR'
+            assert 'com/dreamdisplays/media/player/pipeline/AndroidOpenALLine.class' in jar.namelist()
             mod=json.loads(jar.read('fabric.mod.json'))
-            assert mod['version']=='1.10.4-kirazium-vtt1' and mod['depends']['minecraft']=='1.21.11'
+            assert mod['version']=='1.10.4-kirazium-android-vtt1' and mod['depends']['minecraft']=='1.21.11'
         with zipfile.ZipFile(io.BytesIO(apk.read('assets/kirazium/modpacks/sodium-boost-mx-1.21.11.mrpack'))) as pack:
             assert pack.testzip() is None, 'Modpack CRC failure'
             assert json.loads(pack.read('modrinth.index.json'))['dependencies']=={'minecraft':'1.21.11','fabric-loader':'0.19.5'}

@@ -2,12 +2,6 @@ name: KiraziumClient 2.7.6 Release
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/release-2.7.6.yml"
-      - "scripts/test-cinema-upgrade.py"
 
 permissions:
   contents: write

@@ -22,15 +22,18 @@ import java.util.Set;
 public final class KiraziumCinemaInstaller {
     private static final String TAG = "KiraziumCinemaInstaller";
     private static final String FILE_NAME =
-            "dreamdisplays-fabric-1.21.11-1.10.4-kirazium-vtt1.jar";
+            "dreamdisplays-fabric-1.21.11-1.10.4-kirazium-android-vtt1.jar";
     private static final String ASSET_PATH = "kirazium/mods/" + FILE_NAME;
     private static final String SHA256 =
-            "b1db4768aab5ebab3e8fa81b862ca955d71e7cf77d878547af1b4215a053738c";
-    private static final long SIZE = 26_976_581L;
+            "827aac742642f428c9709a63852e8dba3ff96757f3ba353a3932f0fa1a39db10";
+    private static final long SIZE = 24_447_989L;
 
     private static final String LEGACY_FILE_NAME = "dreamdisplays-fabric-1.21.11-1.9.5-kirazium-android-mobilefix1.jar";
     private static final String LEGACY_SHA256 = "01f4a9a9fbab1fad686d2d62b8210d7dd28686bca3551537e158f15b100f6fc9";
     private static final long LEGACY_SIZE = 22_983_449L;
+    private static final String LEGACY_PC_FILE_NAME = "dreamdisplays-fabric-1.21.11-1.10.4-kirazium-vtt1.jar";
+    private static final String LEGACY_PC_SHA256 = "b1db4768aab5ebab3e8fa81b862ca955d71e7cf77d878547af1b4215a053738c";
+    private static final long LEGACY_PC_SIZE = 26_976_581L;
 
     private KiraziumCinemaInstaller() {}
 
@@ -71,6 +74,7 @@ public final class KiraziumCinemaInstaller {
             if (isExact(destination)) {
                 disableManagedEmbedded(destination);
             }
+            removeLegacyManaged(modsDirectory);
             Log.i(TAG, "Manual DreamDisplays override detected; leaving it untouched: "
                     + manualOverride.getAbsolutePath());
             return;
@@ -156,14 +160,20 @@ public final class KiraziumCinemaInstaller {
     }
 
     private static boolean isLegacyManaged(File file) throws IOException {
-        return file.getName().equals(LEGACY_FILE_NAME) && file.isFile() &&
-                file.length() == LEGACY_SIZE && LEGACY_SHA256.equals(sha256(file));
+        if (!file.isFile()) return false;
+        if (file.getName().equals(LEGACY_FILE_NAME) && file.length() == LEGACY_SIZE)
+            return LEGACY_SHA256.equals(sha256(file));
+        if (file.getName().equals(LEGACY_PC_FILE_NAME) && file.length() == LEGACY_PC_SIZE)
+            return LEGACY_PC_SHA256.equals(sha256(file));
+        return false;
     }
 
     private static void removeLegacyManaged(File modsDirectory) throws IOException {
-        File legacy = new File(modsDirectory, LEGACY_FILE_NAME);
-        if (isLegacyManaged(legacy) && !legacy.delete()) {
-            throw new IOException("Eski DreamDisplays modu kaldirilamadi");
+        for (String name : List.of(LEGACY_FILE_NAME, LEGACY_PC_FILE_NAME)) {
+            File legacy = new File(modsDirectory, name);
+            if (isLegacyManaged(legacy) && !legacy.delete()) {
+                throw new IOException("Eski DreamDisplays modu kaldirilamadi");
+            }
         }
     }
 

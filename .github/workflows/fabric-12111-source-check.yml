@@ -21,8 +21,8 @@ permissions:
 env:
   PACK: app_pojavlauncher/src/main/assets/kirazium/modpacks/sodium-boost-mx-1.21.11.mrpack
   PACK_SHA256: 5dbf39d0f8295cdbdc4077a4e06aa0e3a9f81dac5d1182b3b9cb4215caafff65
-  CINEMA: app_pojavlauncher/src/main/assets/kirazium/mods/dreamdisplays-fabric-1.21.11-1.10.4-kirazium-vtt1.jar
-  CINEMA_SHA256: b1db4768aab5ebab3e8fa81b862ca955d71e7cf77d878547af1b4215a053738c
+  CINEMA: app_pojavlauncher/src/main/assets/kirazium/mods/dreamdisplays-fabric-1.21.11-1.10.4-kirazium-android-vtt1.jar
+  CINEMA_SHA256: 827aac742642f428c9709a63852e8dba3ff96757f3ba353a3932f0fa1a39db10
 
 jobs:
   build-source:
@@ -40,14 +40,14 @@ jobs:
           echo "$PACK_SHA256  $PACK" | sha256sum -c -
           echo "$CINEMA_SHA256  $CINEMA" | sha256sum -c -
           test "$(stat -c%s "$PACK")" = 15703050
-          test "$(stat -c%s "$CINEMA")" = 26976581
+          test "$(stat -c%s "$CINEMA")" = 24447989
           unzip -p "$PACK" modrinth.index.json | grep -F '"minecraft": "1.21.11"' >/dev/null
           unzip -p "$PACK" modrinth.index.json | grep -F '"fabric-loader": "0.19.5"' >/dev/null
           test "$(unzip -Z1 "$PACK" | grep -Ec '^overrides/mods/.*\.jar$')" = 17
-          unzip -p "$CINEMA" fabric.mod.json | grep -F '1.10.4-kirazium-vtt1' >/dev/null
+          unzip -p "$CINEMA" fabric.mod.json | grep -F '1.10.4-kirazium-android-vtt1' >/dev/null
           unzip -p "$CINEMA" fabric.mod.json | grep -F '"minecraft": "1.21.11"' >/dev/null
-          grep -F 'versionName "2.7.7"' app_pojavlauncher/build.gradle >/dev/null
-          grep -F 'versionCode 270700' app_pojavlauncher/build.gradle >/dev/null
+          grep -F 'versionName "2.7.8"' app_pojavlauncher/build.gradle >/dev/null
+          grep -F 'versionCode 270800' app_pojavlauncher/build.gradle >/dev/null
           grep -F 'public static final String GAME_VERSION = "1.21.11";' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumBootstrap.java >/dev/null
           grep -F 'public static final String FABRIC_LOADER_VERSION = "0.19.5";' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/KiraziumBootstrap.java >/dev/null
           grep -F 'instance.selectedRuntime = "Internal-21";' app_pojavlauncher/src/main/java/net/kdt/pojavlaunch/instances/Instances.java >/dev/null
@@ -95,10 +95,10 @@ jobs:
           APK="$(find app_pojavlauncher/build/outputs/apk/full/release -type f -name '*.apk' | head -n 1)"
           test -s "$APK"
           AAPT="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name aapt | sort -V | tail -n 1)"
-          "$AAPT" dump badging "$APK" | grep -F "versionCode='270700'" >/dev/null
-          "$AAPT" dump badging "$APK" | grep -F "versionName='2.7.7'" >/dev/null
+          "$AAPT" dump badging "$APK" | grep -F "versionCode='270800'" >/dev/null
+          "$AAPT" dump badging "$APK" | grep -F "versionName='2.7.8'" >/dev/null
           unzip -p "$APK" "assets/kirazium/modpacks/sodium-boost-mx-1.21.11.mrpack" > /tmp/pack.mrpack
-          unzip -p "$APK" "assets/kirazium/mods/dreamdisplays-fabric-1.21.11-1.10.4-kirazium-vtt1.jar" > /tmp/cinema.jar
+          unzip -p "$APK" "assets/kirazium/mods/dreamdisplays-fabric-1.21.11-1.10.4-kirazium-android-vtt1.jar" > /tmp/cinema.jar
           echo "$PACK_SHA256  /tmp/pack.mrpack" | sha256sum -c -
           echo "$CINEMA_SHA256  /tmp/cinema.jar" | sha256sum -c -
           echo "Source build and embedded payload verification succeeded: $APK"
